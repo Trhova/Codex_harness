@@ -1,0 +1,11 @@
+# codex_harness-managed exclusions
+.git/
+.writer-skill-env/
+.codex/skills/
+graphify-out/cache/
+vendor/
+node_modules/
+dist/
+build/
+__pycache__/
+

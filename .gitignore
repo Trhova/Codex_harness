@@ -1,0 +1,6 @@
+.venv/
+bin/
+state/backups/
+state/tmp/
+vendor/*/.graphify_*
+

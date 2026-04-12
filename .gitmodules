@@ -1,0 +1,6 @@
+[submodule "vendor/rtk"]
+	path = vendor/rtk
+	url = https://github.com/rtk-ai/rtk
+[submodule "vendor/graphify"]
+	path = vendor/graphify
+	url = https://github.com/safishamsi/graphify
