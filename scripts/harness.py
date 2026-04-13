@@ -15,25 +15,27 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PROJECT_ROOT = Path("/home/trhova/writer_skill")
 DEFAULT_CODEX_HOME = Path.home() / ".codex"
+SHELL_PROFILE = Path.home() / ".bashrc"
 MANIFEST_PATH = REPO_ROOT / "manifests" / "changes.json"
 VENV_DIR = REPO_ROOT / ".venv"
 BIN_DIR = REPO_ROOT / "bin"
 GRAPHIFY_DIR = REPO_ROOT / "vendor" / "graphify"
 RTK_DIR = REPO_ROOT / "vendor" / "rtk"
-
-PROJECT_AGENT_START = "<!-- codex_harness:project:start -->"
-PROJECT_AGENT_END = "<!-- codex_harness:project:end -->"
+ENV_DIR = REPO_ROOT / "env"
+RTK_PATH_ENV = ENV_DIR / "rtk-path.sh"
+SHELL_PATH_BEGIN = "# codex_harness:rtk-path:start"
+SHELL_PATH_END = "# codex_harness:rtk-path:end"
 
 
 @dataclass
-class InstallContext:
-    project_root: Path
+class OperationContext:
     codex_home: Path
     backup_dir: Path
     changes: list[dict]
+    commands: list[dict]
     timestamp: str
+    project_root: Path | None = None
 
 
 def read_text(path: Path) -> str:
@@ -51,13 +53,20 @@ def load_json(path: Path, default: dict | list) -> dict | list:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def save_manifest(payload: dict) -> None:
-    MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    MANIFEST_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+def manifest_default() -> dict:
+    return {
+        "bootstrap": None,
+        "targets": {},
+    }
 
 
 def load_manifest() -> dict:
-    return load_json(MANIFEST_PATH, {"active_install": None})
+    return load_json(MANIFEST_PATH, manifest_default())
+
+
+def save_manifest(payload: dict) -> None:
+    MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    MANIFEST_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def file_snapshot(path: Path) -> dict:
@@ -65,12 +74,11 @@ def file_snapshot(path: Path) -> dict:
         return {"exists": False}
     if path.is_dir():
         return {"exists": True, "type": "dir"}
-    digest = hashlib.sha256(path.read_bytes()).hexdigest()
     return {
         "exists": True,
         "type": "file",
         "size": path.stat().st_size,
-        "sha256": digest,
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
     }
 
 
@@ -127,24 +135,110 @@ def update_after_snapshot(changes: list[dict], target: Path) -> None:
     entry["changed"] = entry["before"] != after
 
 
-def render_template(path: Path) -> str:
-    return path.read_text(encoding="utf-8").rstrip() + "\n"
+def record_command(ctx: OperationContext, command: list[str], cwd: Path | None = None) -> None:
+    ctx.commands.append(
+        {
+            "command": command,
+            "cwd": str(cwd.resolve()) if cwd else None,
+        }
+    )
 
 
-def upsert_marked_block(existing: str, start_marker: str, end_marker: str, block: str) -> str:
-    block = block.rstrip() + "\n"
-    if start_marker in existing and end_marker in existing:
-        before, remainder = existing.split(start_marker, 1)
-        _, after = remainder.split(end_marker, 1)
-        new_text = before.rstrip() + "\n\n" + block + "\n" + after.lstrip()
-        return new_text.strip() + "\n"
-    if existing.strip():
-        return existing.rstrip() + "\n\n" + block
-    return block
+def run(
+    cmd: list[str],
+    env: dict[str, str] | None = None,
+    cwd: Path | None = None,
+    capture: bool = False,
+) -> subprocess.CompletedProcess[str] | None:
+    if capture:
+        return subprocess.run(
+            cmd,
+            check=True,
+            cwd=str(cwd) if cwd else None,
+            env=env,
+            text=True,
+            capture_output=True,
+        )
+    subprocess.run(cmd, check=True, cwd=str(cwd) if cwd else None, env=env)
+    return None
+
+
+def make_context(codex_home: Path, project_root: Path | None = None) -> OperationContext:
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    backup_dir = REPO_ROOT / "state" / "backups" / timestamp
+    return OperationContext(
+        codex_home=codex_home,
+        backup_dir=backup_dir,
+        changes=[],
+        commands=[],
+        timestamp=timestamp,
+        project_root=project_root,
+    )
 
 
 def ensure_executable(path: Path) -> None:
     path.chmod(path.stat().st_mode | 0o111)
+
+
+def ensure_rtk_path_env_file() -> None:
+    ENV_DIR.mkdir(parents=True, exist_ok=True)
+    content = (
+        "#!/usr/bin/env sh\n"
+        f'export PATH="{BIN_DIR}:$PATH"\n'
+    )
+    if read_text(RTK_PATH_ENV) != content:
+        write_text(RTK_PATH_ENV, content)
+        ensure_executable(RTK_PATH_ENV)
+
+
+def render_shell_path_block() -> str:
+    return (
+        f"{SHELL_PATH_BEGIN}\n"
+        f'. "{RTK_PATH_ENV}"\n'
+        f"{SHELL_PATH_END}\n"
+    )
+
+
+def ensure_shell_path_block(ctx: OperationContext) -> dict:
+    profile_path = SHELL_PROFILE
+    before = file_snapshot(profile_path)
+    ensure_backup(ctx.changes, ctx.backup_dir, profile_path, "rtk", "add harness PATH block")
+    existing = read_text(profile_path)
+    block = render_shell_path_block()
+    if block not in existing:
+        if existing and not existing.endswith("\n"):
+            existing += "\n"
+        if existing and not existing.endswith("\n\n"):
+            existing += "\n"
+        existing += block
+        write_text(profile_path, existing)
+    update_after_snapshot(ctx.changes, profile_path)
+    after = file_snapshot(profile_path)
+    return {
+        "before": before,
+        "after": after,
+        "touched_files": [str(profile_path)] if before != after else [],
+        "profile": str(profile_path),
+        "env_file": str(RTK_PATH_ENV),
+    }
+
+
+def remove_shell_path_block() -> None:
+    profile_path = SHELL_PROFILE
+    if not profile_path.exists():
+        return
+    content = read_text(profile_path)
+    start = content.find(SHELL_PATH_BEGIN)
+    end = content.find(SHELL_PATH_END)
+    if start == -1 or end == -1:
+        return
+    end = content.find("\n", end)
+    if end == -1:
+        end = len(content)
+    else:
+        end += 1
+    new_content = content[:start] + content[end:]
+    write_text(profile_path, new_content.rstrip() + "\n" if new_content.strip() else "")
 
 
 def patch_codex_config(existing: str) -> str:
@@ -183,85 +277,25 @@ def patch_codex_config(existing: str) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def install_project_files(ctx: InstallContext) -> None:
-    agents_path = ctx.project_root / "AGENTS.md"
-    ensure_backup(ctx.changes, ctx.backup_dir, agents_path, "codex_harness", "project graph/rtk guidance")
-    project_agents = render_template(REPO_ROOT / "templates" / "AGENTS.md")
-    write_text(
-        agents_path,
-        upsert_marked_block(read_text(agents_path), PROJECT_AGENT_START, PROJECT_AGENT_END, project_agents),
-    )
-    update_after_snapshot(ctx.changes, agents_path)
-
-    graphifyignore_path = ctx.project_root / ".graphifyignore"
-    ensure_backup(ctx.changes, ctx.backup_dir, graphifyignore_path, "codex_harness", "project graphify exclusions")
-    graphifyignore = render_template(REPO_ROOT / "templates" / "project.graphifyignore")
-    existing_ignore = read_text(graphifyignore_path)
-    if graphifyignore.strip() not in existing_ignore:
-        combined = existing_ignore.rstrip()
-        if combined:
-            combined += "\n\n"
-        combined += graphifyignore
-        write_text(graphifyignore_path, combined)
-    update_after_snapshot(ctx.changes, graphifyignore_path)
-
-    hooks_path = ctx.project_root / ".codex" / "hooks.json"
-    ensure_backup(ctx.changes, ctx.backup_dir, hooks_path, "graphify", "project PreToolUse reminder")
-    hooks = load_json(hooks_path, {"hooks": {}})
-    pre_tool = hooks.setdefault("hooks", {}).setdefault("PreToolUse", [])
-    pre_tool = [entry for entry in pre_tool if entry.get("codex_harness_managed") != "graphify"]
-    pre_tool.append(
-        {
-            "matcher": "Bash",
-            "codex_harness_managed": "graphify",
-            "hooks": [
-                {
-                    "type": "command",
-                    "command": (
-                        "[ -f graphify-out/graph.json ] && "
-                        """echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"},"systemMessage":"codex_harness: graphify graph available. Read graphify-out/GRAPH_REPORT.md before broad file searches."}' """
-                        "|| true"
-                    ),
-                }
-            ],
-        }
-    )
-    hooks["hooks"]["PreToolUse"] = pre_tool
-    write_text(hooks_path, json.dumps(hooks, indent=2) + "\n")
-    update_after_snapshot(ctx.changes, hooks_path)
-
-
-def install_codex_config(ctx: InstallContext) -> None:
-    config_path = ctx.codex_home / "config.toml"
-    ensure_backup(ctx.changes, ctx.backup_dir, config_path, "graphify", "enable Codex multi_agent")
-    write_text(config_path, patch_codex_config(read_text(config_path)))
-    update_after_snapshot(ctx.changes, config_path)
-
-
-def run(cmd: list[str], env: dict[str, str] | None = None, cwd: Path | None = None, capture: bool = False) -> subprocess.CompletedProcess[str] | None:
-    if capture:
-        return subprocess.run(
-            cmd,
-            check=True,
-            cwd=str(cwd) if cwd else None,
-            env=env,
-            text=True,
-            capture_output=True,
-        )
-    subprocess.run(cmd, check=True, cwd=str(cwd) if cwd else None, env=env)
-    return None
-
-
-def create_venv() -> None:
+def create_venv(ctx: OperationContext) -> None:
     if not (VENV_DIR / "bin" / "python").exists():
-        run([sys.executable, "-m", "venv", str(VENV_DIR)])
+        command = [sys.executable, "-m", "venv", str(VENV_DIR)]
+        record_command(ctx, command)
+        run(command)
 
 
-def install_graphify() -> None:
-    create_venv()
+def install_graphify(ctx: OperationContext) -> None:
+    create_venv(ctx)
     pip = VENV_DIR / "bin" / "pip"
-    run([str(pip), "install", "--upgrade", "pip", "setuptools", "wheel"])
-    run([str(pip), "install", "-e", f"{GRAPHIFY_DIR}[watch,leiden]"])
+    command = [str(pip), "install", "--upgrade", "pip", "setuptools", "wheel"]
+    record_command(ctx, command)
+    run(command)
+    command = [str(pip), "install", "markitdown[all]"]
+    record_command(ctx, command)
+    run(command)
+    command = [str(pip), "install", "-e", f"{GRAPHIFY_DIR}[watch,leiden]"]
+    record_command(ctx, command)
+    run(command)
 
 
 def detect_rtk_target() -> str:
@@ -280,17 +314,14 @@ def detect_rtk_target() -> str:
     raise RuntimeError(f"Unsupported platform: {system} {machine}")
 
 
-def install_rtk_binary() -> None:
+def install_rtk_binary(ctx: OperationContext) -> None:
     BIN_DIR.mkdir(parents=True, exist_ok=True)
     version = os.environ.get("RTK_VERSION", "").strip()
     if not version:
-        described = (
-            subprocess.check_output(
-                ["git", "-C", str(RTK_DIR), "describe", "--tags", "--abbrev=0"],
-                text=True,
-            )
-            .strip()
-        )
+        described = subprocess.check_output(
+            ["git", "-C", str(RTK_DIR), "describe", "--tags", "--abbrev=0"],
+            text=True,
+        ).strip()
         if re.fullmatch(r"v\d+\.\d+\.\d+", described):
             version = described
         else:
@@ -304,29 +335,37 @@ def install_rtk_binary() -> None:
     tmp_dir = REPO_ROOT / "state" / "tmp"
     tmp_dir.mkdir(parents=True, exist_ok=True)
     archive = tmp_dir / f"rtk-{target}.tar.gz"
-    run(["curl", "-fsSL", url, "-o", str(archive)])
-    if (BIN_DIR / "rtk").exists():
-        (BIN_DIR / "rtk").unlink()
+
+    command = ["curl", "-fsSL", url, "-o", str(archive)]
+    record_command(ctx, command)
+    run(command)
+
+    binary_path = BIN_DIR / "rtk"
+    if binary_path.exists():
+        binary_path.unlink()
     extracted = tmp_dir / "rtk"
     if extracted.exists():
         extracted.unlink()
-    run(["tar", "-xzf", str(archive), "-C", str(tmp_dir)])
-    shutil.move(str(extracted), str(BIN_DIR / "rtk"))
-    ensure_executable(BIN_DIR / "rtk")
+
+    command = ["tar", "-xzf", str(archive), "-C", str(tmp_dir)]
+    record_command(ctx, command)
+    run(command)
+
+    shutil.move(str(extracted), str(binary_path))
+    ensure_executable(binary_path)
 
 
-def run_rtk_codex_init(ctx: InstallContext) -> dict:
-    tracked_paths = [
-        ctx.codex_home / "AGENTS.md",
-        ctx.codex_home / "RTK.md",
-    ]
+def run_rtk_codex_init(ctx: OperationContext) -> dict:
+    tracked_paths = [ctx.codex_home / "AGENTS.md", ctx.codex_home / "RTK.md"]
     before = {str(path): file_snapshot(path) for path in tracked_paths}
     for path in tracked_paths:
         ensure_backup(ctx.changes, ctx.backup_dir, path, "rtk", "official Codex RTK init")
 
     env = os.environ.copy()
     env["PATH"] = f"{BIN_DIR}:{env.get('PATH', '')}"
-    result = run([str(BIN_DIR / "rtk"), "init", "-g", "--codex"], env=env, capture=True)
+    command = [str(BIN_DIR / "rtk"), "init", "-g", "--codex"]
+    record_command(ctx, command)
+    result = run(command, env=env, capture=True)
     assert result is not None
 
     after = {}
@@ -339,7 +378,7 @@ def run_rtk_codex_init(ctx: InstallContext) -> dict:
             touched.append(str(path))
 
     return {
-        "command": [str(BIN_DIR / "rtk"), "init", "-g", "--codex"],
+        "command": command,
         "stdout": result.stdout,
         "stderr": result.stderr,
         "tracked_files": [str(path) for path in tracked_paths],
@@ -349,60 +388,120 @@ def run_rtk_codex_init(ctx: InstallContext) -> dict:
     }
 
 
-def verify_install(ctx: InstallContext) -> None:
-    run([str(VENV_DIR / "bin" / "graphify"), "--help"])
-    run([str(BIN_DIR / "rtk"), "--version"])
-    if not (ctx.project_root / "AGENTS.md").exists():
-        raise RuntimeError("project AGENTS.md was not created")
-    if not (ctx.codex_home / "RTK.md").exists():
-        raise RuntimeError("global RTK.md was not created by rtk init")
+def ensure_markitdown_codex_guidance(ctx: OperationContext) -> dict:
+    agents_path = ctx.codex_home / "AGENTS.md"
+    before = file_snapshot(agents_path)
+    ensure_backup(ctx.changes, ctx.backup_dir, agents_path, "markitdown", "prefer MarkItDown for document conversion")
 
+    marker = "## MarkItDown\n\nPrefer `markitdown` for document-to-Markdown conversion and other supported office/document formats when it is the right tool. Use it first for reliable Markdown conversion, then fall back to specialized extractors only when MarkItDown cannot preserve the needed content or structure.\n"
+    existing = read_text(agents_path)
+    if marker not in existing:
+        if existing and not existing.endswith("\n"):
+            existing += "\n"
+        if existing:
+            existing += "\n"
+        existing += marker
+        write_text(agents_path, existing)
 
-def install(project_root: Path, codex_home: Path) -> None:
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    backup_dir = REPO_ROOT / "state" / "backups" / timestamp
-    ctx = InstallContext(
-        project_root=project_root,
-        codex_home=codex_home,
-        backup_dir=backup_dir,
-        changes=[],
-        timestamp=timestamp,
-    )
-    install_graphify()
-    install_rtk_binary()
-    install_project_files(ctx)
-    install_codex_config(ctx)
-    rtk_codex = run_rtk_codex_init(ctx)
-
-    manifest = {
-        "active_install": {
-            "timestamp": timestamp,
-            "repo_root": str(REPO_ROOT),
-            "project_root": str(project_root),
-            "codex_home": str(codex_home),
-            "backup_dir": str(backup_dir),
-            "graphify_bin": str(VENV_DIR / "bin" / "graphify"),
-            "rtk_bin": str(BIN_DIR / "rtk"),
-            "submodules": {
-                "graphify": subprocess.check_output(["git", "-C", str(GRAPHIFY_DIR), "rev-parse", "HEAD"], text=True).strip(),
-                "rtk": subprocess.check_output(["git", "-C", str(RTK_DIR), "rev-parse", "HEAD"], text=True).strip(),
-            },
-            "rtk_codex_init": rtk_codex,
-            "changes": ctx.changes,
-        }
+    update_after_snapshot(ctx.changes, agents_path)
+    after = file_snapshot(agents_path)
+    return {
+        "before": before,
+        "after": after,
+        "touched_files": [str(agents_path)] if before != after else [],
+        "command": None,
     }
-    save_manifest(manifest)
-    verify_install(ctx)
 
 
-def uninstall() -> None:
-    manifest = load_manifest()
-    active = manifest.get("active_install")
-    if not active:
-        print("No active install recorded.")
-        return
+def run_graphify_codex_install(ctx: OperationContext) -> dict:
+    if ctx.project_root is None:
+        raise RuntimeError("project_root is required for graphify activation")
 
-    for change in reversed(active.get("changes", [])):
+    tracked_paths = [
+        ctx.project_root / "AGENTS.md",
+        ctx.project_root / ".codex" / "hooks.json",
+        ctx.codex_home / "config.toml",
+    ]
+    before = {str(path): file_snapshot(path) for path in tracked_paths}
+    for path in tracked_paths:
+        ensure_backup(ctx.changes, ctx.backup_dir, path, "graphify", "official Codex install")
+
+    env = os.environ.copy()
+    env["PATH"] = f"{VENV_DIR / 'bin'}:{env.get('PATH', '')}"
+    command = [str(VENV_DIR / "bin" / "graphify"), "codex", "install"]
+    record_command(ctx, command, cwd=ctx.project_root)
+    result = run(command, env=env, cwd=ctx.project_root, capture=True)
+    assert result is not None
+
+    after = {}
+    touched = []
+    for path in tracked_paths:
+        update_after_snapshot(ctx.changes, path)
+        snapshot = file_snapshot(path)
+        after[str(path)] = snapshot
+        if before[str(path)] != snapshot:
+            touched.append(str(path))
+
+    config_path = ctx.codex_home / "config.toml"
+    config_before = file_snapshot(config_path)
+    if not re.search(r"(?m)^\s*multi_agent\s*=\s*true\s*$", read_text(config_path)):
+        multi_agent_source = "harness"
+        ensure_backup(ctx.changes, ctx.backup_dir, config_path, "graphify", "enable Codex multi_agent")
+        write_text(config_path, patch_codex_config(read_text(config_path)))
+        update_after_snapshot(ctx.changes, config_path)
+    else:
+        multi_agent_source = "graphify"
+    config_after = file_snapshot(config_path)
+
+    return {
+        "command": command,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "tracked_files": [str(path) for path in tracked_paths],
+        "touched_files": touched,
+        "before": before,
+        "after": after,
+        "multi_agent_source": multi_agent_source,
+        "config_before": config_before,
+        "config_after": config_after,
+    }
+
+
+def build_bootstrap_record(ctx: OperationContext, rtk_codex: dict) -> dict:
+    return {
+        "timestamp": ctx.timestamp,
+        "repo_root": str(REPO_ROOT),
+        "codex_home": str(ctx.codex_home),
+        "backup_dir": str(ctx.backup_dir),
+        "graphify_bin": str(VENV_DIR / "bin" / "graphify"),
+        "rtk_bin": str(BIN_DIR / "rtk"),
+        "submodules": {
+            "graphify": subprocess.check_output(["git", "-C", str(GRAPHIFY_DIR), "rev-parse", "HEAD"], text=True).strip(),
+            "rtk": subprocess.check_output(["git", "-C", str(RTK_DIR), "rev-parse", "HEAD"], text=True).strip(),
+        },
+        "rtk_codex_init": rtk_codex,
+        "changes": ctx.changes,
+        "commands": ctx.commands,
+    }
+
+
+def build_target_record(ctx: OperationContext, graphify_codex: dict) -> dict:
+    if ctx.project_root is None:
+        raise RuntimeError("project_root is required for target record")
+    return {
+        "timestamp": ctx.timestamp,
+        "project_root": str(ctx.project_root),
+        "codex_home": str(ctx.codex_home),
+        "backup_dir": str(ctx.backup_dir),
+        "graphify_bin": str(VENV_DIR / "bin" / "graphify"),
+        "graphify_codex_install": graphify_codex,
+        "changes": ctx.changes,
+        "commands": ctx.commands,
+    }
+
+
+def revert_changes(changes: list[dict]) -> None:
+    for change in reversed(changes):
         target = Path(change["path"])
         backup_path = change.get("backup_path")
         if change.get("existed_before") and backup_path:
@@ -415,25 +514,177 @@ def uninstall() -> None:
             else:
                 target.unlink()
 
+
+def verify_bootstrap(codex_home: Path) -> None:
+    run([str(VENV_DIR / "bin" / "graphify"), "--help"])
+    run([str(BIN_DIR / "rtk"), "--version"])
+    run(["bash", "-lc", f'source "{SHELL_PROFILE}" >/dev/null 2>&1; command -v rtk'])
+    if not (codex_home / "RTK.md").exists():
+        raise RuntimeError("global RTK.md was not created by rtk init")
+
+
+def verify_target(project_root: Path) -> None:
+    if not (project_root / "AGENTS.md").exists():
+        raise RuntimeError("project AGENTS.md was not created")
+    if not (project_root / ".codex" / "hooks.json").exists():
+        raise RuntimeError("project .codex/hooks.json was not created")
+
+
+def bootstrap(codex_home: Path) -> None:
+    manifest = load_manifest()
+    if manifest.get("bootstrap"):
+        raise RuntimeError("bootstrap already recorded; run uninstall before bootstrapping again")
+
+    ctx = make_context(codex_home)
+    install_graphify(ctx)
+    install_rtk_binary(ctx)
+    ensure_rtk_path_env_file()
+    rtk_codex = run_rtk_codex_init(ctx)
+    markitdown_codex = ensure_markitdown_codex_guidance(ctx)
+    shell_path = ensure_shell_path_block(ctx)
+    manifest["bootstrap"] = build_bootstrap_record(ctx, rtk_codex)
+    manifest["bootstrap"]["markitdown_codex_guidance"] = markitdown_codex
+    manifest["bootstrap"]["shell_path"] = shell_path
+    save_manifest(manifest)
+    verify_bootstrap(codex_home)
+
+
+def activate(project_root: Path, codex_home: Path) -> None:
+    manifest = load_manifest()
+    if not manifest.get("bootstrap"):
+        raise RuntimeError("bootstrap must be completed before activating a target project")
+
+    project_root = project_root.resolve()
+    project_key = str(project_root)
+    if manifest["targets"].get(project_key):
+        raise RuntimeError(f"target already activated: {project_key}")
+
+    ctx = make_context(codex_home, project_root)
+    graphify_codex = run_graphify_codex_install(ctx)
+    manifest["targets"][project_key] = build_target_record(ctx, graphify_codex)
+    save_manifest(manifest)
+    verify_target(project_root)
+
+
+def deactivate(project_root: Path) -> None:
+    manifest = load_manifest()
+    project_key = str(project_root.resolve())
+    target = manifest.get("targets", {}).get(project_key)
+    if not target:
+        print(f"No active target recorded for {project_key}.")
+        return
+
+    revert_changes(target.get("changes", []))
+    del manifest["targets"][project_key]
+    save_manifest(manifest)
+
+
+def uninstall() -> None:
+    manifest = load_manifest()
+    for target_key in list(manifest.get("targets", {}).keys()):
+        revert_changes(manifest["targets"][target_key].get("changes", []))
+        del manifest["targets"][target_key]
+
+    bootstrap_record = manifest.get("bootstrap")
+    if bootstrap_record:
+        revert_changes(bootstrap_record.get("changes", []))
+        remove_shell_path_block()
+
     if VENV_DIR.exists():
         shutil.rmtree(VENV_DIR)
     rtk_binary = BIN_DIR / "rtk"
     if rtk_binary.exists():
         rtk_binary.unlink()
-    save_manifest({"active_install": None})
+    if RTK_PATH_ENV.exists():
+        RTK_PATH_ENV.unlink()
+
+    save_manifest(manifest_default())
+
+
+def migrate_legacy_manifest() -> bool:
+    manifest = load_manifest()
+    if "active_install" not in manifest:
+        return False
+
+    legacy = manifest.get("active_install")
+    upgraded = manifest_default()
+    if legacy:
+        bootstrap_record = {
+            "timestamp": legacy["timestamp"],
+            "repo_root": legacy["repo_root"],
+            "codex_home": legacy["codex_home"],
+            "backup_dir": legacy["backup_dir"],
+            "graphify_bin": legacy["graphify_bin"],
+            "rtk_bin": legacy["rtk_bin"],
+            "submodules": legacy["submodules"],
+            "rtk_codex_init": legacy["rtk_codex_init"],
+            "changes": [change for change in legacy["changes"] if change["manager"] == "rtk"],
+            "commands": [command for command in legacy.get("commands", []) if "graphify" not in " ".join(command["command"])],
+        }
+        upgraded["bootstrap"] = bootstrap_record
+
+        project_root = legacy.get("project_root")
+        graphify_changes = [change for change in legacy["changes"] if change["manager"] == "graphify"]
+        if project_root and graphify_changes:
+            upgraded["targets"][project_root] = {
+                "timestamp": legacy["timestamp"],
+                "project_root": project_root,
+                "codex_home": legacy["codex_home"],
+                "backup_dir": legacy["backup_dir"],
+                "graphify_bin": legacy["graphify_bin"],
+                "graphify_codex_install": legacy.get("graphify_codex_install"),
+                "changes": graphify_changes,
+                "commands": [command for command in legacy.get("commands", []) if "graphify" in " ".join(command["command"])],
+            }
+
+    save_manifest(upgraded)
+    return True
+
+
+def usage() -> str:
+    return (
+        "Usage: harness.py [bootstrap|activate|deactivate|uninstall] [project_root]\n"
+        "  bootstrap                 prepare reusable harness tooling only\n"
+        "  activate <project_root>   activate Graphify for one target project\n"
+        "  deactivate <project_root> remove Graphify setup from one target project\n"
+        "  uninstall                 remove all targets and bootstrap tooling\n"
+    )
 
 
 def main() -> None:
-    if len(sys.argv) < 2 or sys.argv[1] not in {"install", "uninstall"}:
-        raise SystemExit("Usage: harness.py [install|uninstall]")
+    migrate_legacy_manifest()
 
-    project_root = Path(os.environ.get("PROJECT_ROOT", str(DEFAULT_PROJECT_ROOT))).resolve()
+    if len(sys.argv) < 2:
+        raise SystemExit(usage())
+
+    command = sys.argv[1]
     codex_home = Path(os.environ.get("CODEX_HOME", str(DEFAULT_CODEX_HOME))).resolve()
 
-    if sys.argv[1] == "install":
-        install(project_root, codex_home)
-    else:
+    if command == "bootstrap":
+        if len(sys.argv) != 2:
+            raise SystemExit(usage())
+        bootstrap(codex_home)
+        return
+
+    if command == "activate":
+        if len(sys.argv) != 3:
+            raise SystemExit(usage())
+        activate(Path(sys.argv[2]), codex_home)
+        return
+
+    if command == "deactivate":
+        if len(sys.argv) != 3:
+            raise SystemExit(usage())
+        deactivate(Path(sys.argv[2]))
+        return
+
+    if command == "uninstall":
+        if len(sys.argv) != 2:
+            raise SystemExit(usage())
         uninstall()
+        return
+
+    raise SystemExit(usage())
 
 
 if __name__ == "__main__":

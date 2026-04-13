@@ -1,3 +1,346 @@
 {
-  "active_install": null
+  "bootstrap": {
+    "timestamp": "20260412T134052Z",
+    "repo_root": "/home/trhova/codex_harness",
+    "codex_home": "/home/trhova/.codex",
+    "backup_dir": "/home/trhova/codex_harness/state/backups/20260412T134052Z",
+    "graphify_bin": "/home/trhova/codex_harness/.venv/bin/graphify",
+    "rtk_bin": "/home/trhova/codex_harness/bin/rtk",
+    "submodules": {
+      "graphify": "013313f8d62ebba82985b899bb554b8231bdd8ee",
+      "rtk": "8a7106c8f2996ebc75b38a71c5f342f17811ce39"
+    },
+    "rtk_codex_init": {
+      "command": [
+        "/home/trhova/codex_harness/bin/rtk",
+        "init",
+        "-g",
+        "--codex"
+      ],
+      "stdout": "\nRTK configured for Codex CLI.\n\n  RTK.md:    /home/trhova/.codex/RTK.md\n  AGENTS.md: @/home/trhova/.codex/RTK.md reference added\n\n  Codex global instructions path: /home/trhova/.codex/AGENTS.md\n",
+      "stderr": "",
+      "tracked_files": [
+        "/home/trhova/.codex/AGENTS.md",
+        "/home/trhova/.codex/RTK.md"
+      ],
+      "touched_files": [
+        "/home/trhova/.codex/AGENTS.md",
+        "/home/trhova/.codex/RTK.md"
+      ],
+      "before": {
+        "/home/trhova/.codex/AGENTS.md": {
+          "exists": false
+        },
+        "/home/trhova/.codex/RTK.md": {
+          "exists": false
+        }
+      },
+      "after": {
+        "/home/trhova/.codex/AGENTS.md": {
+          "exists": true,
+          "type": "file",
+          "size": 28,
+          "sha256": "b519e69744536fe5a92651ce415a1c43834aea99fe49a3e06c252e3374585557"
+        },
+        "/home/trhova/.codex/RTK.md": {
+          "exists": true,
+          "type": "file",
+          "size": 482,
+          "sha256": "49c368c302c6f63d089f4c1085b242fc50fe22ce5bc34dada6478083000e7c6f"
+        }
+      }
+    },
+    "changes": [
+      {
+        "path": "/home/trhova/.codex/AGENTS.md",
+        "manager": "rtk",
+        "reason": "official Codex RTK init",
+        "existed_before": false,
+        "backup_path": null,
+        "before": {
+          "exists": false
+        },
+        "after": {
+          "exists": true,
+          "type": "file",
+          "size": 329,
+          "sha256": "d52c9da3208d15128784c6ce0788520840c712aa9e774a6436424529263c2f0e"
+        },
+        "changed": true
+      },
+      {
+        "path": "/home/trhova/.codex/RTK.md",
+        "manager": "rtk",
+        "reason": "official Codex RTK init",
+        "existed_before": false,
+        "backup_path": null,
+        "before": {
+          "exists": false
+        },
+        "after": {
+          "exists": true,
+          "type": "file",
+          "size": 482,
+          "sha256": "49c368c302c6f63d089f4c1085b242fc50fe22ce5bc34dada6478083000e7c6f"
+        },
+        "changed": true
+      },
+      {
+        "path": "/home/trhova/.bashrc",
+        "manager": "rtk",
+        "reason": "add harness PATH block",
+        "existed_before": true,
+        "backup_path": "/home/trhova/codex_harness/state/backups/20260413T082441Z/home/trhova/.bashrc",
+        "before": {
+          "exists": true,
+          "type": "file",
+          "size": 1007,
+          "sha256": "43413e7b71e4477a504e8225aebd8e29c64f212aa7cb15a7cf383b26f11ea494"
+        },
+        "after": {
+          "exists": true,
+          "type": "file",
+          "size": 1115,
+          "sha256": "15129790ea9e735dc426fd4b7a0a001bd7c022d2e1d9686ffc950c7fac87016f"
+        },
+        "changed": true
+      }
+    ],
+    "commands": [
+      {
+        "command": [
+          "/home/trhova/miniconda3/bin/python3",
+          "-m",
+          "venv",
+          "/home/trhova/codex_harness/.venv"
+        ],
+        "cwd": null
+      },
+      {
+        "command": [
+          "/home/trhova/codex_harness/.venv/bin/pip",
+          "install",
+          "--upgrade",
+          "pip",
+          "setuptools",
+          "wheel"
+        ],
+        "cwd": null
+      },
+      {
+        "command": [
+          "curl",
+          "-fsSL",
+          "https://github.com/rtk-ai/rtk/releases/download/v0.35.0/rtk-x86_64-unknown-linux-musl.tar.gz",
+          "-o",
+          "/home/trhova/codex_harness/state/tmp/rtk-x86_64-unknown-linux-musl.tar.gz"
+        ],
+        "cwd": null
+      },
+      {
+        "command": [
+          "tar",
+          "-xzf",
+          "/home/trhova/codex_harness/state/tmp/rtk-x86_64-unknown-linux-musl.tar.gz",
+          "-C",
+          "/home/trhova/codex_harness/state/tmp"
+        ],
+        "cwd": null
+      },
+      {
+        "command": [
+          "/home/trhova/codex_harness/.venv/bin/pip",
+          "install",
+          "markitdown[all]"
+        ],
+        "cwd": null
+      }
+    ],
+    "markitdown_codex_guidance": {
+      "before": {
+        "exists": true,
+        "type": "file",
+        "size": 28,
+        "sha256": "b519e69744536fe5a92651ce415a1c43834aea99fe49a3e06c252e3374585557"
+      },
+      "after": {
+        "exists": true,
+        "type": "file",
+        "size": 329,
+        "sha256": "d52c9da3208d15128784c6ce0788520840c712aa9e774a6436424529263c2f0e"
+      },
+      "touched_files": [
+        "/home/trhova/.codex/AGENTS.md"
+      ],
+      "command": null
+    },
+    "shell_path": {
+      "before": {
+        "exists": true,
+        "type": "file",
+        "size": 1007,
+        "sha256": "43413e7b71e4477a504e8225aebd8e29c64f212aa7cb15a7cf383b26f11ea494"
+      },
+      "after": {
+        "exists": true,
+        "type": "file",
+        "size": 1115,
+        "sha256": "15129790ea9e735dc426fd4b7a0a001bd7c022d2e1d9686ffc950c7fac87016f"
+      },
+      "touched_files": [
+        "/home/trhova/.bashrc"
+      ],
+      "profile": "/home/trhova/.bashrc",
+      "env_file": "/home/trhova/codex_harness/env/rtk-path.sh"
+    }
+  },
+  "targets": {
+    "/home/trhova/writer_skill": {
+      "timestamp": "20260412T134052Z",
+      "project_root": "/home/trhova/writer_skill",
+      "codex_home": "/home/trhova/.codex",
+      "backup_dir": "/home/trhova/codex_harness/state/backups/20260412T134052Z",
+      "graphify_bin": "/home/trhova/codex_harness/.venv/bin/graphify",
+      "graphify_codex_install": {
+        "command": [
+          "/home/trhova/codex_harness/.venv/bin/graphify",
+          "codex",
+          "install"
+        ],
+        "stdout": "graphify section written to /home/trhova/writer_skill/AGENTS.md\n  .codex/hooks.json  ->  PreToolUse hook registered\n\nCodex will now check the knowledge graph before answering\ncodebase questions and rebuild it after code changes.\n",
+        "stderr": "",
+        "tracked_files": [
+          "/home/trhova/writer_skill/AGENTS.md",
+          "/home/trhova/writer_skill/.codex/hooks.json",
+          "/home/trhova/.codex/config.toml"
+        ],
+        "touched_files": [
+          "/home/trhova/writer_skill/AGENTS.md",
+          "/home/trhova/writer_skill/.codex/hooks.json"
+        ],
+        "before": {
+          "/home/trhova/writer_skill/AGENTS.md": {
+            "exists": false
+          },
+          "/home/trhova/writer_skill/.codex/hooks.json": {
+            "exists": false
+          },
+          "/home/trhova/.codex/config.toml": {
+            "exists": true,
+            "type": "file",
+            "size": 130,
+            "sha256": "faa14c8ef66654ca66390c9853785fea668312007553ff8f4722b7fca434222a"
+          }
+        },
+        "after": {
+          "/home/trhova/writer_skill/AGENTS.md": {
+            "exists": true,
+            "type": "file",
+            "size": 475,
+            "sha256": "7072266af3b6b5b88d087b2246893c59405a2f2f7543c66c677f8301e915c36c"
+          },
+          "/home/trhova/writer_skill/.codex/hooks.json": {
+            "exists": true,
+            "type": "file",
+            "size": 496,
+            "sha256": "44ac1ecc9a8ce52156bc0543fbe993e65366868eb6624c70b5ee40303e895f0d"
+          },
+          "/home/trhova/.codex/config.toml": {
+            "exists": true,
+            "type": "file",
+            "size": 130,
+            "sha256": "faa14c8ef66654ca66390c9853785fea668312007553ff8f4722b7fca434222a"
+          }
+        },
+        "multi_agent_source": "harness",
+        "config_before": {
+          "exists": true,
+          "type": "file",
+          "size": 130,
+          "sha256": "faa14c8ef66654ca66390c9853785fea668312007553ff8f4722b7fca434222a"
+        },
+        "config_after": {
+          "exists": true,
+          "type": "file",
+          "size": 161,
+          "sha256": "eeed4c215d9d7857cc48129345ee44d19490d3452974af90c747e3db78957c9a"
+        }
+      },
+      "changes": [
+        {
+          "path": "/home/trhova/writer_skill/AGENTS.md",
+          "manager": "graphify",
+          "reason": "official Codex install",
+          "existed_before": false,
+          "backup_path": null,
+          "before": {
+            "exists": false
+          },
+          "after": {
+            "exists": true,
+            "type": "file",
+            "size": 475,
+            "sha256": "7072266af3b6b5b88d087b2246893c59405a2f2f7543c66c677f8301e915c36c"
+          },
+          "changed": true
+        },
+        {
+          "path": "/home/trhova/writer_skill/.codex/hooks.json",
+          "manager": "graphify",
+          "reason": "official Codex install",
+          "existed_before": false,
+          "backup_path": null,
+          "before": {
+            "exists": false
+          },
+          "after": {
+            "exists": true,
+            "type": "file",
+            "size": 496,
+            "sha256": "44ac1ecc9a8ce52156bc0543fbe993e65366868eb6624c70b5ee40303e895f0d"
+          },
+          "changed": true
+        },
+        {
+          "path": "/home/trhova/.codex/config.toml",
+          "manager": "graphify",
+          "reason": "official Codex install",
+          "existed_before": true,
+          "backup_path": "/home/trhova/codex_harness/state/backups/20260412T134052Z/home/trhova/.codex/config.toml",
+          "before": {
+            "exists": true,
+            "type": "file",
+            "size": 130,
+            "sha256": "faa14c8ef66654ca66390c9853785fea668312007553ff8f4722b7fca434222a"
+          },
+          "after": {
+            "exists": true,
+            "type": "file",
+            "size": 161,
+            "sha256": "eeed4c215d9d7857cc48129345ee44d19490d3452974af90c747e3db78957c9a"
+          },
+          "changed": true
+        }
+      ],
+      "commands": [
+        {
+          "command": [
+            "/home/trhova/codex_harness/.venv/bin/pip",
+            "install",
+            "-e",
+            "/home/trhova/codex_harness/vendor/graphify[watch,leiden]"
+          ],
+          "cwd": null
+        },
+        {
+          "command": [
+            "/home/trhova/codex_harness/.venv/bin/graphify",
+            "codex",
+            "install"
+          ],
+          "cwd": "/home/trhova/writer_skill"
+        }
+      ]
+    }
+  }
 }

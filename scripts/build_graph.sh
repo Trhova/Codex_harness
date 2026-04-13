@@ -17,4 +17,4 @@ if [[ -z "${PROJECT_ROOT}" ]]; then
 fi
 
 cd "${PROJECT_ROOT}"
-exec "${GRAPHIFY_BIN}" . --update
+exec "${GRAPHIFY_BIN}" .
