@@ -27,7 +27,7 @@ Use Graphify first if graphify-out exists.
 Use RTK for noisy commands.
 Do not edit generated files.
 Run markdown checks if available.
-Commit and push after verification.
+Stop after summarizing the diff and checks run.
 ```
 
 ## Key Habits

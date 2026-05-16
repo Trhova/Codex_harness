@@ -31,7 +31,7 @@ Do not change installer behavior.
 Use placeholders instead of private paths.
 Before editing, list files you will change.
 After editing, show files changed, commands run, and remaining gaps.
-Commit and push when done.
+Do not commit or push unless I explicitly ask after reviewing the diff.
 ```
 
 ## Code Review

@@ -5,17 +5,17 @@
 
 The integration is reversible in two layers:
 
-1. `git -C /home/trhova/codex_harness log --stat`
-2. `/home/trhova/codex_harness/scripts/uninstall.sh`
+1. `git -C /home/<user>/codex_harness log --stat`
+2. `/home/<user>/codex_harness/scripts/uninstall.sh`
 
 `uninstall.sh` restores every bootstrap file and every activated target recorded in `manifests/changes.json`.
 
 Typical rollback flow:
 
 ```bash
-/home/trhova/codex_harness/scripts/deactivate.sh /path/to/project
-/home/trhova/codex_harness/scripts/uninstall.sh
-git -C /home/trhova/codex_harness status
+/home/<user>/codex_harness/scripts/deactivate.sh /path/to/project
+/home/<user>/codex_harness/scripts/uninstall.sh
+git -C /home/<user>/codex_harness status
 ```
 
 If you want to inspect what will be restored first, open:
@@ -38,7 +38,7 @@ Target-managed files depend on which projects are activated. For a Codex target,
 RTK global Codex setup is applied by the official command:
 
 ```bash
-/home/trhova/codex_harness/bin/rtk init -g --codex
+/home/<user>/codex_harness/bin/rtk init -g --codex
 ```
 
 The harness backs up `~/.codex/AGENTS.md` and `~/.codex/RTK.md` before running that command, records pre/post file state in `manifests/changes.json`, and restores exact backups during uninstall.

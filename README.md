@@ -210,20 +210,20 @@ The chart is generated at [experiments/context_size/results/context_reduction_by
 ### Install Harness
 
 ```bash
-/home/trhova/codex_harness/scripts/install.sh
+/home/<user>/codex_harness/scripts/install.sh
 ```
 
 ### Activate a Project
 
 ```bash
-/home/trhova/codex_harness/scripts/activate.sh /path/to/project
+/home/<user>/codex_harness/scripts/activate.sh /path/to/project
 ```
 
 ### Build or Refresh a Graph
 
 ```bash
-/home/trhova/codex_harness/scripts/build_graph.sh /path/to/project
-/home/trhova/codex_harness/scripts/refresh_graph.sh /path/to/project
+/home/<user>/codex_harness/scripts/build_graph.sh /path/to/project
+/home/<user>/codex_harness/scripts/refresh_graph.sh /path/to/project
 ```
 
 ### Use RTK in a Repo
@@ -239,13 +239,13 @@ rtk pytest
 ### Deactivate One Project
 
 ```bash
-/home/trhova/codex_harness/scripts/deactivate.sh /path/to/project
+/home/<user>/codex_harness/scripts/deactivate.sh /path/to/project
 ```
 
 ### Uninstall Everything the Harness Knows About
 
 ```bash
-/home/trhova/codex_harness/scripts/uninstall.sh
+/home/<user>/codex_harness/scripts/uninstall.sh
 ```
 
 ### Example Subagent Prompt

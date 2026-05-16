@@ -18,7 +18,7 @@ cd /home/<user>/codex_harness
 
 ```bash
 cat manifests/changes.json
-find state/backups -maxdepth 3 -type f
+rtk find state/backups -maxdepth 3 -type f
 ```
 
 ## RTK
@@ -37,6 +37,7 @@ rtk pytest
 ```bash
 /home/<user>/codex_harness/scripts/build_graph.sh /path/to/project
 /home/<user>/codex_harness/scripts/refresh_graph.sh /path/to/project
+cd /path/to/project
 sed -n '1,160p' graphify-out/GRAPH_REPORT.md
 ```
 

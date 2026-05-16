@@ -184,11 +184,13 @@ def ensure_rtk_path_env_file() -> None:
     ENV_DIR.mkdir(parents=True, exist_ok=True)
     content = (
         "#!/usr/bin/env sh\n"
-        f'export PATH="{BIN_DIR}:$PATH"\n'
+        'RTK_PATH_SCRIPT=${BASH_SOURCE:-$0}\n'
+        'RTK_PATH_SCRIPT_DIR=$(CDPATH= cd "$(dirname "$RTK_PATH_SCRIPT")" && pwd)\n'
+        'export PATH="${RTK_PATH_SCRIPT_DIR}/../bin:$PATH"\n'
     )
     if read_text(RTK_PATH_ENV) != content:
         write_text(RTK_PATH_ENV, content)
-        ensure_executable(RTK_PATH_ENV)
+    ensure_executable(RTK_PATH_ENV)
 
 
 def render_shell_path_block() -> str:

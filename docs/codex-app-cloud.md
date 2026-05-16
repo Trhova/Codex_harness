@@ -42,7 +42,7 @@ Verification:
 Point Codex at the right files:
 
 ```text
-Start with README.md, docs/README.md, scripts/harness.py, and docs/ROLLBACK.md.
+Start with README.md, docs/README.md, scripts/harness.py, and docs/rollback.md.
 Do not scan vendor/ unless needed.
 ```
 
