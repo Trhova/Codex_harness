@@ -15,12 +15,14 @@ Summary:
 - Total baseline transcript tokens: 27,541
 - Total harness-style transcript tokens: 10,254
 - Overall measured reduction: 62.8%
-- Median per-fixture reduction: 57.2%
-- Reduction range: 23.6% to 78.5%
+- Pooled family reduction range: 26.5% to 74.8%
+- Individual replicate reduction range: 23.6% to 78.5%
 
 ![Context reduction by fixture family](results/context_reduction_by_family.svg)
 
 The full per-scenario data is in [summary.csv](results/summary.csv). Family-level rollups are in [family_summary.csv](results/family_summary.csv).
+
+The chart labels use pooled family reduction: `1 - sum(harness_tokens) / sum(baseline_tokens)` for all fixtures in that family. This is not the same as the arithmetic mean of replicate percentages, because larger fixtures contribute proportionally more to the pooled number.
 
 ## Scenarios
 

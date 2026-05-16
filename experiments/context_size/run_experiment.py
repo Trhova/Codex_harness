@@ -310,7 +310,7 @@ def write_reduction_svg(rows: list[dict[str, object]], path: Path) -> None:
     width = 1120
     row_height = 72
     header_height = 128
-    footer_height = 76
+    footer_height = 112
     height = header_height + row_height * len(FAMILY_ORDER) + footer_height
     label_x = 230
     plot_x = 255
@@ -319,22 +319,23 @@ def write_reduction_svg(rows: list[dict[str, object]], path: Path) -> None:
     total_baseline = sum(int(row["baseline_tokens"]) for row in rows)
     total_harness = sum(int(row["harness_tokens"]) for row in rows)
     overall = (1 - total_harness / total_baseline) * 100
-    median = statistics.median(float(row["reduction_percent"]) for row in rows)
+    replicate_count = len(rows)
     summaries = {summary["family"]: summary for summary in family_summaries(rows)}
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
         '<rect width="100%" height="100%" rx="0" fill="#f8fafc"/>',
         '<text x="28" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#0f172a">Measured context reduction by fixture family</text>',
-        f'<text x="28" y="66" font-family="Arial, sans-serif" font-size="13" fill="#475569">14 fixture repositories. Dots are individual replicates; thick bars show each family range; black ticks show family medians. Tokenizer={TOKENIZER}.</text>',
+        f'<text x="28" y="66" font-family="Arial, sans-serif" font-size="13" fill="#475569">{replicate_count} fixture repositories. Dots are individual replicates; thick bars show each family range; vertical ticks show pooled family reductions. Tokenizer={TOKENIZER}.</text>',
         f'<text x="28" y="106" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#0f172a">{overall:.1f}%</text>',
-        '<text x="112" y="106" font-family="Arial, sans-serif" font-size="13" fill="#475569">overall fewer transcript tokens</text>',
-        f'<text x="326" y="106" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#0f172a">{median:.1f}%</text>',
-        '<text x="410" y="106" font-family="Arial, sans-serif" font-size="13" fill="#475569">median replicate reduction</text>',
+        '<text x="128" y="106" font-family="Arial, sans-serif" font-size="13" fill="#475569">overall fewer transcript tokens</text>',
     ]
+    axis_label_y = height - footer_height + 34
+    legend_y = height - 54
+    note_y = height - 24
     for tick in range(0, 81, 20):
         x = plot_x + (tick / max_percent) * plot_width
-        parts.append(f'<line x1="{x:.1f}" y1="{header_height - 12}" x2="{x:.1f}" y2="{height - footer_height + 10}" stroke="#e2e8f0"/>')
-        parts.append(f'<text x="{x:.1f}" y="{height - footer_height + 34}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">{tick}%</text>')
+        parts.append(f'<line x1="{x:.1f}" y1="{header_height - 12}" x2="{x:.1f}" y2="{height - footer_height}" stroke="#e2e8f0"/>')
+        parts.append(f'<text x="{x:.1f}" y="{axis_label_y}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">{tick}%</text>')
 
     for index, family in enumerate(FAMILY_ORDER):
         grouped = sorted([row for row in rows if row["family"] == family], key=lambda row: float(row["reduction_percent"]))
@@ -346,32 +347,27 @@ def write_reduction_svg(rows: list[dict[str, object]], path: Path) -> None:
         center_y = y + 34
         min_reduction = float(summary["min_reduction_percent"])
         max_reduction = float(summary["max_reduction_percent"])
-        median_reduction = float(summary["median_reduction_percent"])
         overall_reduction = float(summary["overall_reduction_percent"])
         x_min = plot_x + (min_reduction / max_percent) * plot_width
         x_max = plot_x + (max_reduction / max_percent) * plot_width
-        x_median = plot_x + (median_reduction / max_percent) * plot_width
         x_overall = plot_x + (overall_reduction / max_percent) * plot_width
         parts.append(f'<text x="28" y="{center_y - 8}" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="{color}">{family}</text>')
         parts.append(f'<text x="28" y="{center_y + 12}" font-family="Arial, sans-serif" font-size="11" fill="#64748b">{summary["replicates"]} replicates</text>')
         parts.append(f'<line x1="{x_min:.1f}" y1="{center_y}" x2="{x_max:.1f}" y2="{center_y}" stroke="{color}" stroke-width="14" stroke-linecap="round" opacity="0.22"/>')
         parts.append(f'<line x1="{x_overall:.1f}" y1="{center_y - 15}" x2="{x_overall:.1f}" y2="{center_y + 15}" stroke="{color}" stroke-width="3" opacity="0.95"/>')
-        parts.append(f'<line x1="{x_median:.1f}" y1="{center_y - 17}" x2="{x_median:.1f}" y2="{center_y + 17}" stroke="#111827" stroke-width="2"/>')
         for dot_index, row in enumerate(grouped):
             reduction = float(row["reduction_percent"])
             x = plot_x + (reduction / max_percent) * plot_width
             offset = (dot_index - (len(grouped) - 1) / 2) * 7
             parts.append(f'<circle cx="{x:.1f}" cy="{center_y + offset:.1f}" r="5.2" fill="{color}" stroke="#ffffff" stroke-width="1.7"/>')
-        parts.append(f'<text x="{plot_x + plot_width + 18}" y="{center_y - 6}" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#0f172a">{overall_reduction:.1f}% overall</text>')
+        parts.append(f'<text x="{plot_x + plot_width + 18}" y="{center_y - 6}" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#0f172a">{overall_reduction:.1f}% pooled</text>')
         parts.append(f'<text x="{plot_x + plot_width + 18}" y="{center_y + 12}" font-family="Arial, sans-serif" font-size="11" fill="#64748b">range {min_reduction:.1f}-{max_reduction:.1f}%</text>')
     parts.extend([
-        f'<line x1="{plot_x}" y1="{height - 42}" x2="{plot_x + 22}" y2="{height - 42}" stroke="#111827" stroke-width="2"/>',
-        f'<text x="{plot_x + 30}" y="{height - 38}" font-family="Arial, sans-serif" font-size="11" fill="#64748b">median</text>',
-        f'<line x1="{plot_x + 100}" y1="{height - 42}" x2="{plot_x + 100}" y2="{height - 20}" stroke="#2563eb" stroke-width="3"/>',
-        f'<text x="{plot_x + 110}" y="{height - 38}" font-family="Arial, sans-serif" font-size="11" fill="#64748b">family overall</text>',
-        f'<circle cx="{plot_x + 235}" cy="{height - 42}" r="5.2" fill="#2563eb" stroke="#ffffff" stroke-width="1.7"/>',
-        f'<text x="{plot_x + 247}" y="{height - 38}" font-family="Arial, sans-serif" font-size="11" fill="#64748b">replicate</text>',
-        f'<text x="{plot_x}" y="{height - 16}" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Measured on generated context-gathering transcripts, not private Codex billing telemetry.</text>',
+        f'<line x1="{plot_x}" y1="{legend_y - 11}" x2="{plot_x}" y2="{legend_y + 11}" stroke="#2563eb" stroke-width="3"/>',
+        f'<text x="{plot_x + 12}" y="{legend_y + 4}" font-family="Arial, sans-serif" font-size="11" fill="#64748b">pooled family reduction</text>',
+        f'<circle cx="{plot_x + 190}" cy="{legend_y}" r="5.2" fill="#2563eb" stroke="#ffffff" stroke-width="1.7"/>',
+        f'<text x="{plot_x + 202}" y="{legend_y + 4}" font-family="Arial, sans-serif" font-size="11" fill="#64748b">replicate</text>',
+        f'<text x="{plot_x}" y="{note_y}" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Measured on generated context-gathering transcripts, not private Codex billing telemetry.</text>',
         "</svg>",
     ])
     path.write_text("\n".join(parts) + "\n", encoding="utf-8")
@@ -394,13 +390,11 @@ def write_png_if_possible(rows: list[dict[str, object]], path: Path) -> bool:
         color = FAMILY_COLORS[family]
         min_reduction = float(summary["min_reduction_percent"])
         max_reduction = float(summary["max_reduction_percent"])
-        median_reduction = float(summary["median_reduction_percent"])
         overall_reduction = float(summary["overall_reduction_percent"])
         ax.plot([min_reduction, max_reduction], [y_pos, y_pos], color=color, linewidth=12, alpha=0.22, solid_capstyle="round")
         ax.scatter([float(row["reduction_percent"]) for row in grouped], [y_pos] * len(grouped), color=color, edgecolors="white", linewidths=1.5, s=58, zorder=3)
-        ax.plot([median_reduction, median_reduction], [y_pos - 0.22, y_pos + 0.22], color="#111827", linewidth=2, zorder=4)
         ax.plot([overall_reduction, overall_reduction], [y_pos - 0.18, y_pos + 0.18], color=color, linewidth=3, zorder=4)
-        ax.text(max_reduction + 1.2, y_pos, f"{overall_reduction:.1f}% overall", va="center", fontsize=9)
+        ax.text(max_reduction + 1.2, y_pos, f"{overall_reduction:.1f}% pooled", va="center", fontsize=9)
     ax.set_yticks(y_positions, FAMILY_ORDER)
     ax.invert_yaxis()
     ax.set_title("Measured context reduction by fixture family")
@@ -410,8 +404,14 @@ def write_png_if_possible(rows: list[dict[str, object]], path: Path) -> bool:
     total_baseline = sum(int(row["baseline_tokens"]) for row in rows)
     total_harness = sum(int(row["harness_tokens"]) for row in rows)
     overall = (1 - total_harness / total_baseline) * 100
-    median = statistics.median(float(row["reduction_percent"]) for row in rows)
-    ax.text(0.0, -0.12, f"Overall: {overall:.1f}% fewer transcript tokens. Median replicate: {median:.1f}%. Tokenizer: {TOKENIZER}.", transform=ax.transAxes, fontsize=9)
+    family_count = len({str(row["family"]) for row in rows})
+    ax.text(
+        0.0,
+        -0.12,
+        f"Overall: {overall:.1f}% fewer transcript tokens across {len(rows)} fixtures and {family_count} families. Tokenizer: {TOKENIZER}.",
+        transform=ax.transAxes,
+        fontsize=9,
+    )
     fig.tight_layout()
     fig.savefig(path, dpi=160)
     plt.close(fig)

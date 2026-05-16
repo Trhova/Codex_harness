@@ -185,7 +185,7 @@ The experiment counts actual transcript tokens with `tiktoken` using the `o200k_
 
 ![Context reduction by fixture family](experiments/context_size/results/context_reduction_by_family.svg)
 
-Across 14 fixtures, the harness-style transcript reduced measured tokens from 27,541 to 10,254 total tokens: **62.8% fewer measured transcript tokens overall**. The median per-fixture reduction was **57.2%**, with a range from **23.6%** on documentation-heavy fixtures to **78.5%** on the largest frontend/3D fixture.
+Across 14 fixtures, the harness-style transcript reduced measured tokens from 27,541 to 10,254 total tokens: **62.8% fewer measured transcript tokens overall**. In the chart, each family label uses a **pooled family reduction**: `1 - sum(harness_tokens) / sum(baseline_tokens)` across that family. That is not the plain mean of the replicate percentages; larger fixtures contribute proportionally more. Pooled family reductions range from **26.5%** on documentation-heavy fixtures to **74.8%** on frontend/3D fixtures, while individual replicate reductions range from **23.6%** to **78.5%**.
 
 Experiment design:
 
