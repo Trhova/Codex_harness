@@ -1,0 +1,493 @@
+# Baseline raw transcript for frontend_replicates__metro_ops_3d
+
+$ find . -type f
+./README.md
+./docs/task.md
+./index.html
+./package.json
+./scenario.json
+./src/controls.js
+./src/main.js
+./src/panels.js
+./src/scene.js
+./src/telemetry.js
+./styles/dashboard.css
+
+$ rg -n 'criticalLoadThreshold|routeStatus|pulseVehicleLights|drawAlertPanel' .
+README.md:11:`criticalLoadThreshold|routeStatus|pulseVehicleLights|drawAlertPanel`
+docs/task.md:9:Expected edit target for the threshold task is only `criticalLoadThreshold` values in `src/telemetry.js`.
+scenario.json:2:  "search_pattern": "criticalLoadThreshold|routeStatus|pulseVehicleLights|drawAlertPanel"
+src/main.js:1:import { buildMetroScene, pulseVehicleLights } from "./scene.js";
+src/main.js:3:import { drawAlertPanel, drawRouteTable } from "./panels.js";
+src/main.js:13:drawAlertPanel(summaryPanel, telemetrySnapshot);
+src/main.js:21:  pulseVehicleLights(app.vehicleMeshes, telemetrySnapshot.routes, delta);
+src/panels.js:1:export function drawAlertPanel(host, telemetry) {
+src/panels.js:2:  const criticalRoutes = telemetry.routes.filter(routeStatus);
+src/panels.js:20:            const status = routeStatus(route) ? "critical" : "normal";
+src/panels.js:29:export function routeStatus(route) {
+src/panels.js:30:  return route.load > route.criticalLoadThreshold || route.delayMinutes >= 7;
+src/scene.js:87:export function pulseVehicleLights(vehicleMeshes, routes, delta) {
+src/scene.js:90:    const loadPulse = route.load > route.criticalLoadThreshold ? 1.25 : 0.55;
+src/telemetry.js:46:      criticalLoadThreshold: 82,
+src/telemetry.js:60:      criticalLoadThreshold: 82,
+src/telemetry.js:71:      criticalLoadThreshold: 82,
+
+$ broad context scan: full text files
+--- README.md ---
+# Metro Ops 3D Fixture
+
+This fixture models a command-center UI wrapped around a Three.js-style city scene. It is intentionally small, but the behavior is split across scene construction, telemetry data, controls, and panel rendering.
+
+Primary comparison task:
+
+- Ask the agent to find where transit vehicle pulse colors and critical route alerts are implemented, then change the critical route threshold from `82` to `88` without altering panel copy.
+
+Good transcript search pattern:
+
+`criticalLoadThreshold|routeStatus|pulseVehicleLights|drawAlertPanel`
+
+--- docs/task.md ---
+# Task Notes
+
+Useful areas for agent comparison:
+
+- `src/telemetry.js` owns static route thresholds and vehicle positions.
+- `src/panels.js` owns the textual status classification.
+- `src/scene.js` owns the visual pulse intensity tied to route load.
+
+Expected edit target for the threshold task is only `criticalLoadThreshold` values in `src/telemetry.js`.
+
+--- index.html ---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Metro Ops 3D</title>
+    <link rel="stylesheet" href="./styles/dashboard.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="viewport" aria-label="3D metro operations scene">
+        <canvas id="city-canvas"></canvas>
+        <div class="hud">
+          <div>
+            <span class="label">Mode</span>
+            <strong id="mode-label">Evening peak</strong>
+          </div>
+          <div>
+            <span class="label">Selected corridor</span>
+            <strong id="corridor-label">Harbor loop</strong>
+          </div>
+        </div>
+      </section>
+      <aside class="panel" aria-label="Operational dashboard">
+        <h1>Metro Ops</h1>
+        <div id="summary-panel"></div>
+        <div id="route-panel"></div>
+        <div class="controls" id="camera-controls"></div>
+      </aside>
+    </main>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
+
+--- package.json ---
+{
+  "name": "metro-ops-3d-fixture",
+  "private": true,
+  "type": "module"
+}
+
+--- scenario.json ---
+{
+  "search_pattern": "criticalLoadThreshold|routeStatus|pulseVehicleLights|drawAlertPanel"
+}
+
+--- src/controls.js ---
+export function createCameraControls(host, cameraRig) {
+  host.innerHTML = "";
+  host.append(
+    makeButton("West", () => {
+      cameraRig.angle -= 0.35;
+    }),
+    makeButton("East", () => {
+      cameraRig.angle += 0.35;
+    }),
+    makeButton("Lower", () => {
+      cameraRig.height = Math.max(12, cameraRig.height - 3);
+    }),
+    makeButton("Raise", () => {
+      cameraRig.height = Math.min(42, cameraRig.height + 3);
+    })
+  );
+}
+
+function makeButton(label, onClick) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.addEventListener("click", onClick);
+  return button;
+}
+
+--- src/main.js ---
+import { buildMetroScene, pulseVehicleLights } from "./scene.js";
+import { createCameraControls } from "./controls.js";
+import { drawAlertPanel, drawRouteTable } from "./panels.js";
+import { telemetrySnapshot } from "./telemetry.js";
+
+const canvas = document.querySelector("#city-canvas");
+const summaryPanel = document.querySelector("#summary-panel");
+const routePanel = document.querySelector("#route-panel");
+const controlsHost = document.querySelector("#camera-controls");
+
+const app = buildMetroScene(canvas, telemetrySnapshot);
+createCameraControls(controlsHost, app.cameraRig);
+drawAlertPanel(summaryPanel, telemetrySnapshot);
+drawRouteTable(routePanel, telemetrySnapshot.routes);
+
+let previousTime = 0;
+
+function frame(time) {
+  const delta = Math.min((time - previousTime) / 1000, 0.04);
+  previousTime = time;
+  pulseVehicleLights(app.vehicleMeshes, telemetrySnapshot.routes, delta);
+  app.render();
+  requestAnimationFrame(frame);
+}
+
+requestAnimationFrame(frame);
+
+--- src/panels.js ---
+export function drawAlertPanel(host, telemetry) {
+  const criticalRoutes = telemetry.routes.filter(routeStatus);
+  host.innerHTML = `
+    <section class="metric-row">
+      <div><span class="label">Network load</span><strong>${telemetry.networkLoad}%</strong></div>
+      <div><span class="label">Incidents</span><strong>${telemetry.incidents}</strong></div>
+      <div><span class="label">Critical routes</span><strong>${criticalRoutes.length}</strong></div>
+    </section>
+  `;
+}
+
+export function drawRouteTable(host, routes) {
+  host.innerHTML = `
+    <h2>Corridors</h2>
+    <table>
+      <thead><tr><th>Route</th><th>Load</th><th>Headway</th><th>Status</th></tr></thead>
+      <tbody>
+        ${routes
+          .map((route) => {
+            const status = routeStatus(route) ? "critical" : "normal";
+            return `<tr class="${status}"><td>${route.name}</td><td>${route.load}%</td><td>${route.headway} min</td><td>${status}</td></tr>`;
+          })
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+export function routeStatus(route) {
+  return route.load > route.criticalLoadThreshold || route.delayMinutes >= 7;
+}
+
+--- src/scene.js ---
+import * as THREE from "https://cdn.skypack.dev/three@0.159.0";
+
+const districtColors = {
+  financial: 0x8bb7ff,
+  harbor: 0x54d7b7,
+  civic: 0xffd166,
+  campus: 0xc89bff,
+};
+
+export function buildMetroScene(canvas, telemetry) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x10151f);
+  scene.fog = new THREE.Fog(0x10151f, 32, 88);
+
+  const camera = new THREE.PerspectiveCamera(48, canvas.clientWidth / canvas.clientHeight, 0.1, 200);
+  const cameraRig = { camera, radius: 38, angle: -0.7, height: 24 };
+  positionCamera(cameraRig);
+
+  scene.add(new THREE.HemisphereLight(0xc8dcff, 0x17202c, 1.8));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  keyLight.position.set(18, 36, 12);
+  scene.add(keyLight);
+
+  const grid = new THREE.GridHelper(72, 24, 0x33506e, 0x223244);
+  scene.add(grid);
+
+  addDistrictBlocks(scene, telemetry.districts);
+  const vehicleMeshes = addTransitVehicles(scene, telemetry.routes);
+
+  window.addEventListener("resize", () => {
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+    camera.aspect = canvas.clientWidth / canvas.clientHeight;
+    camera.updateProjectionMatrix();
+  });
+
+  return {
+    cameraRig,
+    vehicleMeshes,
+    render() {
+      positionCamera(cameraRig);
+      renderer.render(scene, camera);
+    },
+  };
+}
+
+function addDistrictBlocks(scene, districts) {
+  districts.forEach((district, index) => {
+    const material = new THREE.MeshStandardMaterial({
+      color: districtColors[district.kind],
+      metalness: 0.25,
+      roughness: 0.48,
+    });
+
+    district.blocks.forEach((block) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(block.width, block.height, block.depth), material);
+      mesh.position.set(block.x, block.height / 2, block.z);
+      mesh.userData = { district: district.name, index };
+      scene.add(mesh);
+    });
+  });
+}
+
+function addTransitVehicles(scene, routes) {
+  const meshes = [];
+  routes.forEach((route, routeIndex) => {
+    route.vehicles.forEach((vehicle, vehicleIndex) => {
+      const material = new THREE.MeshStandardMaterial({
+        color: route.color,
+        emissive: route.color,
+        emissiveIntensity: 0.25,
+      });
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 2.2), material);
+      mesh.position.set(vehicle.x, 0.45, vehicle.z);
+      mesh.rotation.y = vehicle.heading;
+      mesh.userData = { routeId: route.id, routeIndex, vehicleIndex };
+      meshes.push(mesh);
+      scene.add(mesh);
+    });
+  });
+  return meshes;
+}
+
+export function pulseVehicleLights(vehicleMeshes, routes, delta) {
+  vehicleMeshes.forEach((mesh) => {
+    const route = routes[mesh.userData.routeIndex];
+    const loadPulse = route.load > route.criticalLoadThreshold ? 1.25 : 0.55;
+    mesh.material.emissiveIntensity = 0.25 + Math.abs(Math.sin(performance.now() * 0.006)) * loadPulse;
+    mesh.position.x += Math.cos(mesh.rotation.y) * route.speed * delta;
+    mesh.position.z += Math.sin(mesh.rotation.y) * route.speed * delta;
+  });
+}
+
+function positionCamera(cameraRig) {
+  cameraRig.camera.position.set(
+    Math.cos(cameraRig.angle) * cameraRig.radius,
+    cameraRig.height,
+    Math.sin(cameraRig.angle) * cameraRig.radius
+  );
+  cameraRig.camera.lookAt(0, 0, 0);
+}
+
+--- src/telemetry.js ---
+export const telemetrySnapshot = {
+  networkLoad: 76,
+  incidents: 3,
+  districts: [
+    {
+      name: "North Financial",
+      kind: "financial",
+      blocks: [
+        { x: -12, z: -9, width: 3, depth: 4, height: 14 },
+        { x: -8, z: -14, width: 4, depth: 3, height: 19 },
+        { x: -4, z: -8, width: 3, depth: 5, height: 10 },
+      ],
+    },
+    {
+      name: "Harbor Edge",
+      kind: "harbor",
+      blocks: [
+        { x: 8, z: 11, width: 5, depth: 3, height: 6 },
+        { x: 14, z: 8, width: 4, depth: 4, height: 8 },
+        { x: 18, z: 14, width: 3, depth: 5, height: 5 },
+      ],
+    },
+    {
+      name: "Civic Spine",
+      kind: "civic",
+      blocks: [
+        { x: 2, z: -2, width: 6, depth: 4, height: 7 },
+        { x: 7, z: -5, width: 3, depth: 3, height: 12 },
+      ],
+    },
+    {
+      name: "Campus Quarter",
+      kind: "campus",
+      blocks: [
+        { x: -16, z: 13, width: 4, depth: 4, height: 9 },
+        { x: -10, z: 15, width: 5, depth: 2, height: 7 },
+      ],
+    },
+  ],
+  routes: [
+    {
+      id: "H1",
+      name: "Harbor loop",
+      color: 0x54d7b7,
+      load: 86,
+      criticalLoadThreshold: 82,
+      delayMinutes: 4,
+      headway: 5,
+      speed: 1.4,
+      vehicles: [
+        { x: -16, z: 0, heading: 0.12 },
+        { x: 4, z: 5, heading: 1.6 },
+      ],
+    },
+    {
+      id: "C4",
+      name: "Civic express",
+      color: 0xffd166,
+      load: 64,
+      criticalLoadThreshold: 82,
+      delayMinutes: 2,
+      headway: 4,
+      speed: 1.8,
+      vehicles: [{ x: 10, z: -7, heading: 3.1 }],
+    },
+    {
+      id: "N7",
+      name: "North connector",
+      color: 0x8bb7ff,
+      load: 78,
+      criticalLoadThreshold: 82,
+      delayMinutes: 8,
+      headway: 6,
+      speed: 1.2,
+      vehicles: [{ x: -8, z: -18, heading: 0.9 }],
+    },
+  ],
+};
+
+--- styles/dashboard.css ---
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: #edf3ff;
+  background: #10151f;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  min-height: 100vh;
+}
+
+.viewport {
+  position: relative;
+  min-height: 100vh;
+}
+
+#city-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hud {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  display: flex;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(237, 243, 255, 0.18);
+  background: rgba(16, 21, 31, 0.78);
+}
+
+.panel {
+  border-left: 1px solid rgba(237, 243, 255, 0.14);
+  padding: 24px;
+  background: #151d29;
+}
+
+h1,
+h2 {
+  margin: 0 0 16px;
+  font-size: 22px;
+}
+
+.label {
+  display: block;
+  color: #9fb0c8;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.metric-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.metric-row > div,
+.controls button {
+  border: 1px solid rgba(237, 243, 255, 0.12);
+  border-radius: 8px;
+  padding: 12px;
+  background: #1d2736;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 22px;
+  font-size: 14px;
+}
+
+th,
+td {
+  padding: 10px 8px;
+  border-bottom: 1px solid rgba(237, 243, 255, 0.1);
+  text-align: left;
+}
+
+tr.critical td:last-child {
+  color: #ff7a8a;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.controls button {
+  color: #edf3ff;
+  cursor: pointer;
+}
+
+@media (max-width: 860px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .viewport {
+    min-height: 62vh;
+  }
+}

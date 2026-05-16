@@ -1,0 +1,64 @@
+# RTK-style summaries for ops_replicates__hpc_batch_pipeline
+
+$ rtk find . -type f
+dirs: README.md/ 1, docs/ 1, jobs/ 2, scenario.json/ 1, scripts/ 4
+ext: .json(1), .md(2), .py(2), .sbatch(2), .sh(2)
+sample: README.md, docs/runbook.md, jobs/gpu_train.sbatch, jobs/preprocess_array.sbatch, scenario.json, scripts/collect_job_health.sh, scripts/preprocess_sample.py, scripts/submit_pipeline.sh
+
+$ rtk grep 'afterok|SLURM_ARRAY_TASK_ID|checkpoint|preemption|collect_job_health' .
+README.md: 3 shown
+  L8: - `jobs/gpu_train.sbatch` trains with checkpoint restart support.
+  L9: - `scripts/submit_pipeline.sh` submits both stages and wires the `afterok` dependency.
+  L10: - `scripts/collect_job_health.sh` summarizes `squeue`, `sacct`, and common failure strings.
+docs/runbook.md: 3 shown
+  L9: The preprocessing job must finish cleanly before training starts. `submit_pipeline.sh` uses `afterok` so a failed array
+  L13: - Use `scripts/collect_job_health.sh cohort042` when the training job is pending longer than expected.
+  L15: - If `train_*.err` contains `received preemption signal`, resubmit `jobs/gpu_train.sbatch`; it resumes from the newest `
+jobs/gpu_train.sbatch: 3 shown
+  L17: mkdir -p "${CHECKPOINT_ROOT}" logs
+  L20: echo "received preemption signal; writing final checkpoint"
+  L21: python scripts/train_model.py --config "${TRAIN_CONFIG}" --checkpoint-dir "${CHECKPOINT_ROOT}" --save-and-exit
+jobs/preprocess_array.sbatch: 3 shown
+  L16: sample_id="$(awk -v idx="${SLURM_ARRAY_TASK_ID}" 'NR == idx { print $1 }' "${FASTQ_MANIFEST}")"
+  L17: fastq_path="$(awk -v idx="${SLURM_ARRAY_TASK_ID}" 'NR == idx { print $2 }' "${FASTQ_MANIFEST}")"
+  L20: echo "missing manifest row for task ${SLURM_ARRAY_TASK_ID}" >&2
+scenario.json: 1 shown
+  L2: "search_pattern": "afterok|SLURM_ARRAY_TASK_ID|checkpoint|preemption|collect_job_health"
+scripts/collect_job_health.sh: 1 shown
+  L14: grep -HnE "OutOfMemory|CANCELLED|TIMEOUT|preemption|missing manifest" logs/*.err || true
+scripts/submit_pipeline.sh: 2 shown
+  L10: train_job="$(sbatch --parsable --dependency="afterok:${preprocess_job}" jobs/gpu_train.sbatch)"
+  L11: echo "submitted training job ${train_job} afterok:${preprocess_job}"
+scripts/train_model.py: 3 shown
+  L2: """Placeholder training entrypoint for dependency and checkpoint searches."""
+  L12: parser.add_argument("--checkpoint-dir", required=True)
+  L17: checkpoint_dir = Path(args.checkpoint_dir)
+
+# Graphify-style report for ops_replicates__hpc_batch_pipeline
+
+Files: 9
+Extensions: .json:1, .md:2, .py:2, .sbatch:2, .sh:2
+
+## Communities
+- automation: 6 files (jobs/gpu_train.sbatch, jobs/preprocess_array.sbatch, scripts/collect_job_health.sh, scripts/preprocess_sample.py, scripts/submit_pipeline.sh)
+- docs: 2 files (README.md, docs/runbook.md)
+- scenario.json: 1 files (scenario.json)
+
+## Key Symbols
+- README.md: HPC Batch Pipeline
+- docs/runbook.md: Cohort 042 Pipeline Runbook
+- jobs/gpu_train.sbatch: handle_preempt
+- scripts/preprocess_sample.py: main
+- scripts/train_model.py: main
+
+## Imports and Entrypoints
+- jobs/gpu_train.sbatch: source configs/dataset.env
+- jobs/preprocess_array.sbatch: source configs/dataset.env
+- scripts/preprocess_sample.py: import argparse; from pathlib import Path
+- scripts/submit_pipeline.sh: source configs/dataset.env
+- scripts/train_model.py: import argparse; from pathlib import Path
+
+## Suggested Next Reads
+- README.md
+- docs/runbook.md
+- jobs/gpu_train.sbatch

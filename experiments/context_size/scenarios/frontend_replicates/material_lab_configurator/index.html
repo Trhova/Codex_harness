@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Material Lab</title>
+    <link rel="stylesheet" href="./styles/configurator.css" />
+  </head>
+  <body>
+    <main class="workspace">
+      <section class="preview">
+        <canvas id="preview-canvas" width="900" height="620"></canvas>
+      </section>
+      <section class="inspector">
+        <h1>Material Lab</h1>
+        <div id="preset-list" class="preset-list"></div>
+        <form id="material-form" class="material-form">
+          <label>Roughness <input name="roughness" type="range" min="0" max="1" step="0.01" /></label>
+          <label>Clearcoat <input name="clearcoat" type="range" min="0" max="1" step="0.01" /></label>
+          <label><input name="environmentShimmer" type="checkbox" /> Environment shimmer</label>
+        </form>
+      </section>
+    </main>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>

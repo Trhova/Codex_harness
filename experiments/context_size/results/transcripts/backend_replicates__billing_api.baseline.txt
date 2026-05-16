@@ -1,0 +1,252 @@
+# Baseline raw transcript for backend_replicates__billing_api
+
+$ find . -type f
+./README.md
+./docs/operations.md
+./scenario.json
+./src/__init__.py
+./src/auth.py
+./src/cache.py
+./src/config.py
+./src/repository.py
+./src/routes.py
+./tests/test_adjustments.py
+
+$ rg -n 'duplicate-adjustment-conflict|DuplicateAdjustment|create_adjustment|test_duplicate_adjustment_returns_conflict' .
+README.md:7:Primary task anchor: `duplicate-adjustment-conflict`.
+docs/operations.md:10:Operational marker: `duplicate-adjustment-conflict`.
+scenario.json:2:  "search_pattern": "duplicate-adjustment-conflict|DuplicateAdjustment|create_adjustment|test_duplicate_adjustment_returns_conflict"
+src/repository.py:14:class DuplicateAdjustment(Exception):
+src/repository.py:16:        super().__init__("duplicate-adjustment-conflict")
+src/repository.py:28:            raise DuplicateAdjustment(self._by_id[self._dedupe[dedupe_key]])
+src/routes.py:4:from .repository import Adjustment, AdjustmentRepository, DuplicateAdjustment
+src/routes.py:23:    def create_adjustment(self, request: dict[str, object]) -> dict[str, object]:
+src/routes.py:41:        except DuplicateAdjustment as exc:
+src/routes.py:42:            # duplicate-adjustment-conflict lives here, but its existing id is only on exc.existing.
+tests/test_adjustments.py:19:def test_duplicate_adjustment_returns_conflict() -> None:
+tests/test_adjustments.py:21:    first = routes.create_adjustment(request({"invoice_id": "inv-101", "reason": "tax", "amount_cents": -1200}))
+tests/test_adjustments.py:22:    second = routes.create_adjustment(request({"invoice_id": "inv-101", "reason": "TAX", "amount_cents": -1200}))
+tests/test_adjustments.py:25:    assert second == {"status": 409, "error": "duplicate-adjustment-conflict"}
+
+$ broad context scan: full text files
+--- README.md ---
+# Billing API Replica
+
+This fixture models an internal invoice adjustment API. It has ordinary names
+spread across routes, auth, cache, config, and storage to make wide repository
+scans less precise.
+
+Primary task anchor: `duplicate-adjustment-conflict`.
+
+Search comparison prompt:
+
+> Where is duplicate invoice adjustment rejection implemented, and what files
+> need to change to include the existing adjustment id in the 409 response?
+
+--- docs/operations.md ---
+# Billing API Operations
+
+Adjustment requests are accepted only from service clients with the
+`billing:adjustments:write` scope. The API stores a dedupe key derived from the
+invoice id and adjustment reason.
+
+The conflict response is intentionally documented away from the route handler so
+the implementation requires crossing docs, repository, routes, and tests.
+
+Operational marker: `duplicate-adjustment-conflict`.
+
+--- scenario.json ---
+{
+  "search_pattern": "duplicate-adjustment-conflict|DuplicateAdjustment|create_adjustment|test_duplicate_adjustment_returns_conflict"
+}
+
+--- src/__init__.py ---
+"""Billing API replica."""
+
+--- src/auth.py ---
+from .config import Settings
+
+
+class AuthorizationError(Exception):
+    pass
+
+
+def authorize(headers: dict[str, str], settings: Settings) -> dict[str, object]:
+    token = headers.get("authorization", "").removeprefix("Bearer ").strip()
+    scopes = set(headers.get("x-service-scopes", "").split())
+    issuer = headers.get("x-token-issuer", "")
+    if not token or issuer != settings.issuer:
+        raise AuthorizationError("missing or invalid service token")
+    if settings.adjustment_scope not in scopes:
+        raise AuthorizationError("missing billing adjustment scope")
+    return {"subject": headers.get("x-service-subject", "unknown"), "scopes": scopes}
+
+--- src/cache.py ---
+from time import monotonic
+
+
+class Cache:
+    def __init__(self, ttl_seconds: int) -> None:
+        self.ttl_seconds = ttl_seconds
+        self._values: dict[str, tuple[float, object]] = {}
+
+    def get(self, key: str) -> object | None:
+        expires_at, value = self._values.get(key, (0.0, None))
+        if expires_at < monotonic():
+            self._values.pop(key, None)
+            return None
+        return value
+
+    def set(self, key: str, value: object) -> None:
+        self._values[key] = (monotonic() + self.ttl_seconds, value)
+
+    def invalidate_invoice(self, invoice_id: str) -> None:
+        for key in list(self._values):
+            if key.startswith(f"invoice:{invoice_id}:"):
+                self._values.pop(key, None)
+
+--- src/config.py ---
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Settings:
+    service_name: str = "billing-api"
+    issuer: str = "internal-identity"
+    adjustment_scope: str = "billing:adjustments:write"
+    cache_ttl_seconds: int = 300
+    max_adjustment_cents: int = 250_000
+
+
+def load_settings(env: dict[str, str] | None = None) -> Settings:
+    env = env or {}
+    return Settings(
+        service_name=env.get("SERVICE_NAME", "billing-api"),
+        issuer=env.get("TOKEN_ISSUER", "internal-identity"),
+        adjustment_scope=env.get("ADJUSTMENT_SCOPE", "billing:adjustments:write"),
+        cache_ttl_seconds=int(env.get("CACHE_TTL_SECONDS", "300")),
+        max_adjustment_cents=int(env.get("MAX_ADJUSTMENT_CENTS", "250000")),
+    )
+
+--- src/repository.py ---
+from dataclasses import dataclass
+from uuid import uuid4
+
+
+@dataclass(frozen=True)
+class Adjustment:
+    id: str
+    invoice_id: str
+    reason: str
+    amount_cents: int
+    created_by: str
+
+
+class DuplicateAdjustment(Exception):
+    def __init__(self, existing: Adjustment) -> None:
+        super().__init__("duplicate-adjustment-conflict")
+        self.existing = existing
+
+
+class AdjustmentRepository:
+    def __init__(self) -> None:
+        self._by_id: dict[str, Adjustment] = {}
+        self._dedupe: dict[tuple[str, str], str] = {}
+
+    def create(self, invoice_id: str, reason: str, amount_cents: int, created_by: str) -> Adjustment:
+        dedupe_key = (invoice_id, reason.casefold())
+        if dedupe_key in self._dedupe:
+            raise DuplicateAdjustment(self._by_id[self._dedupe[dedupe_key]])
+        adjustment = Adjustment(str(uuid4()), invoice_id, reason, amount_cents, created_by)
+        self._by_id[adjustment.id] = adjustment
+        self._dedupe[dedupe_key] = adjustment.id
+        return adjustment
+
+    def list_for_invoice(self, invoice_id: str) -> list[Adjustment]:
+        return [item for item in self._by_id.values() if item.invoice_id == invoice_id]
+
+--- src/routes.py ---
+from .auth import AuthorizationError, authorize
+from .cache import Cache
+from .config import Settings
+from .repository import Adjustment, AdjustmentRepository, DuplicateAdjustment
+
+
+def serialize_adjustment(adjustment: Adjustment) -> dict[str, object]:
+    return {
+        "id": adjustment.id,
+        "invoice_id": adjustment.invoice_id,
+        "reason": adjustment.reason,
+        "amount_cents": adjustment.amount_cents,
+        "created_by": adjustment.created_by,
+    }
+
+
+class BillingRoutes:
+    def __init__(self, settings: Settings, repository: AdjustmentRepository, cache: Cache) -> None:
+        self.settings = settings
+        self.repository = repository
+        self.cache = cache
+
+    def create_adjustment(self, request: dict[str, object]) -> dict[str, object]:
+        try:
+            principal = authorize(request.get("headers", {}), self.settings)  # type: ignore[arg-type]
+        except AuthorizationError as exc:
+            return {"status": 403, "error": str(exc)}
+
+        payload = request.get("json", {})  # type: ignore[assignment]
+        amount_cents = int(payload.get("amount_cents", 0))
+        if abs(amount_cents) > self.settings.max_adjustment_cents:
+            return {"status": 422, "error": "adjustment amount exceeds policy"}
+
+        try:
+            adjustment = self.repository.create(
+                invoice_id=str(payload["invoice_id"]),
+                reason=str(payload["reason"]),
+                amount_cents=amount_cents,
+                created_by=str(principal["subject"]),
+            )
+        except DuplicateAdjustment as exc:
+            # duplicate-adjustment-conflict lives here, but its existing id is only on exc.existing.
+            return {"status": 409, "error": str(exc)}
+
+        self.cache.invalidate_invoice(adjustment.invoice_id)
+        return {"status": 201, "adjustment": serialize_adjustment(adjustment)}
+
+    def list_adjustments(self, request: dict[str, object]) -> dict[str, object]:
+        path = request.get("path", {})
+        invoice_id = str(path.get("invoice_id", "")) if isinstance(path, dict) else ""
+        cache_key = f"invoice:{invoice_id}:adjustments"
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return {"status": 200, "adjustments": cached, "cache": "hit"}
+        adjustments = [serialize_adjustment(item) for item in self.repository.list_for_invoice(invoice_id)]
+        self.cache.set(cache_key, adjustments)
+        return {"status": 200, "adjustments": adjustments, "cache": "miss"}
+
+--- tests/test_adjustments.py ---
+from billing_api.src.cache import Cache
+from billing_api.src.config import Settings
+from billing_api.src.repository import AdjustmentRepository
+from billing_api.src.routes import BillingRoutes
+
+
+def request(payload: dict[str, object]) -> dict[str, object]:
+    return {
+        "headers": {
+            "authorization": "Bearer service-token",
+            "x-token-issuer": "internal-identity",
+            "x-service-scopes": "billing:adjustments:write metrics:emit",
+            "x-service-subject": "settlements-worker",
+        },
+        "json": payload,
+    }
+
+
+def test_duplicate_adjustment_returns_conflict() -> None:
+    routes = BillingRoutes(Settings(), AdjustmentRepository(), Cache(60))
+    first = routes.create_adjustment(request({"invoice_id": "inv-101", "reason": "tax", "amount_cents": -1200}))
+    second = routes.create_adjustment(request({"invoice_id": "inv-101", "reason": "TAX", "amount_cents": -1200}))
+
+    assert first["status"] == 201
+    assert second == {"status": 409, "error": "duplicate-adjustment-conflict"}

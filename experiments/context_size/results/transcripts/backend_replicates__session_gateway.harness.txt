@@ -1,0 +1,57 @@
+# RTK-style summaries for backend_replicates__session_gateway
+
+$ rtk find . -type f
+dirs: README.md/ 1, docs/ 1, scenario.json/ 1, src/ 6, tests/ 1
+ext: .json(1), .md(2), .py(7)
+sample: README.md, docs/security.md, scenario.json, src/__init__.py, src/cache.py, src/config.py, src/gateway.py, src/rate_limit.py
+
+$ rtk grep 'token-rotation-cache-invalidation|rotate_signing_key|invalidate_key_id|test_rotation_invalidates_sessions_for_old_key' .
+README.md: 1 shown
+  L6: Primary task anchor: `token-rotation-cache-invalidation`.
+docs/security.md: 1 shown
+  L6: The marker `token-rotation-cache-invalidation` identifies the rotation path. The
+scenario.json: 1 shown
+  L2: "search_pattern": "token-rotation-cache-invalidation|rotate_signing_key|invalidate_key_id|test_rotation_invalidates_sess
+src/cache.py: 1 shown
+  L22: def invalidate_key_id(self, key_id: str) -> int:
+src/gateway.py: 3 shown
+  L26: def rotate_signing_key(self, new_key_id: str) -> dict[str, object]:
+  L29: removed = self.cache.invalidate_key_id(old_key_id)
+  L30: # token-rotation-cache-invalidation: this is the observability boundary.
+tests/test_rotation.py: 2 shown
+  L16: def test_rotation_invalidates_sessions_for_old_key() -> None:
+  L21: result = gateway.rotate_signing_key("kid-002")
+
+# Graphify-style report for backend_replicates__session_gateway
+
+Files: 10
+Extensions: .json:1, .md:2, .py:7
+
+## Communities
+- docs: 2 files (README.md, docs/security.md)
+- runtime: 6 files (src/__init__.py, src/cache.py, src/config.py, src/gateway.py, src/rate_limit.py)
+- scenario.json: 1 files (scenario.json)
+- tests: 1 files (tests/test_rotation.py)
+
+## Key Symbols
+- README.md: Session Gateway Replica
+- docs/security.md: Session Gateway Security Notes
+- src/cache.py: SessionCache, __init__, get, set, invalidate_subject, invalidate_key_id
+- src/config.py: GatewaySettings
+- src/gateway.py: SessionGateway, __init__, authenticate, rotate_signing_key
+- src/rate_limit.py: RateLimiter, __init__, allow
+- src/token.py: TokenClaims, TokenVerifier, __init__, verify, rotate_key
+- tests/test_rotation.py: headers, test_rotation_invalidates_sessions_for_old_key
+
+## Imports and Entrypoints
+- src/cache.py: from time import monotonic
+- src/config.py: from dataclasses import dataclass
+- src/gateway.py: from .cache import SessionCache; from .config import GatewaySettings; from .rate_limit import RateLimiter; from .token import TokenVerifier
+- src/rate_limit.py: from collections import defaultdict
+- src/token.py: from dataclasses import dataclass; from .config import GatewaySettings
+- tests/test_rotation.py: from session_gateway.src.cache import SessionCache; from session_gateway.src.config import GatewaySettings; from session_gateway.src.gateway import SessionGateway; from session_gateway.src.token import TokenVerifier
+
+## Suggested Next Reads
+- README.md
+- docs/security.md
+- scenario.json

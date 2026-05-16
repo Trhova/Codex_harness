@@ -1,0 +1,229 @@
+# Baseline raw transcript for backend_replicates__warehouse_etl
+
+$ find . -type f
+./README.md
+./docs/pipeline.md
+./scenario.json
+./src/__init__.py
+./src/checkpoint.py
+./src/config.py
+./src/extract.py
+./src/load.py
+./src/pipeline.py
+./src/transform.py
+./src/validate.py
+./tests/test_revenue.py
+
+$ rg -n 'refund-net-revenue-guard|daily_revenue_facts|normalize_amount|test_refunds_reduce_net_revenue' .
+README.md:7:Primary task anchor: `refund-net-revenue-guard`.
+docs/pipeline.md:7:`refund-net-revenue-guard` appears in the transformer and test so a targeted
+scenario.json:2:  "search_pattern": "refund-net-revenue-guard|daily_revenue_facts|normalize_amount|test_refunds_reduce_net_revenue"
+src/pipeline.py:5:from .transform import daily_revenue_facts
+src/pipeline.py:25:        facts = daily_revenue_facts(valid_rows)
+src/transform.py:4:def normalize_amount(row: dict[str, object]) -> int:
+src/transform.py:11:def daily_revenue_facts(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+src/transform.py:18:        amount = normalize_amount(row)
+src/transform.py:20:            # refund-net-revenue-guard: refunds reduce net revenue.
+tests/test_revenue.py:1:from warehouse_etl.src.transform import daily_revenue_facts
+tests/test_revenue.py:4:def test_refunds_reduce_net_revenue() -> None:
+tests/test_revenue.py:10:    facts = daily_revenue_facts(rows)
+
+$ broad context scan: full text files
+--- README.md ---
+# Warehouse ETL Replica
+
+This fixture models a daily order revenue pipeline. It includes extractor,
+validator, transformer, loader, checkpoint, and tests with repeated names that
+look like ordinary data-platform code.
+
+Primary task anchor: `refund-net-revenue-guard`.
+
+Search comparison prompt:
+
+> Where are refund rows applied to daily net revenue, and where should malformed
+> refund amount handling be added without changing non-refund order rows?
+
+--- docs/pipeline.md ---
+# Warehouse Pipeline Notes
+
+Rows are extracted from object storage in arrival order, validated into typed
+records, transformed into daily revenue facts, then loaded idempotently.
+
+Refund rows are negative revenue adjustments. The marker
+`refund-net-revenue-guard` appears in the transformer and test so a targeted
+search can avoid unrelated `amount_cents` handling in other fixtures.
+
+--- scenario.json ---
+{
+  "search_pattern": "refund-net-revenue-guard|daily_revenue_facts|normalize_amount|test_refunds_reduce_net_revenue"
+}
+
+--- src/__init__.py ---
+"""Warehouse ETL replica."""
+
+--- src/checkpoint.py ---
+from dataclasses import dataclass
+
+
+@dataclass
+class Checkpoint:
+    date_key: str
+    loaded_rows: int
+    status: str
+
+
+class CheckpointStore:
+    def __init__(self) -> None:
+        self._latest: Checkpoint | None = None
+
+    def save(self, checkpoint: Checkpoint) -> None:
+        self._latest = checkpoint
+
+    def latest(self) -> Checkpoint | None:
+        return self._latest
+
+--- src/config.py ---
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class PipelineConfig:
+    source_bucket: str = "orders-raw"
+    destination_table: str = "warehouse.daily_revenue"
+    checkpoint_key: str = "daily-revenue/checkpoint.json"
+    batch_size: int = 500
+    strict_refunds: bool = True
+
+--- src/extract.py ---
+class ObjectStore:
+    def __init__(self, objects: dict[str, list[dict[str, object]]]) -> None:
+        self.objects = objects
+
+    def read_json_rows(self, bucket: str, prefix: str) -> list[dict[str, object]]:
+        return list(self.objects.get(f"{bucket}/{prefix}", []))
+
+
+def extract_order_rows(store: ObjectStore, bucket: str, date_key: str) -> list[dict[str, object]]:
+    return store.read_json_rows(bucket, f"orders/date={date_key}")
+
+--- src/load.py ---
+class WarehouseClient:
+    def __init__(self) -> None:
+        self.loaded: dict[tuple[str, str], dict[str, object]] = {}
+
+    def upsert_fact(self, table: str, fact: dict[str, object]) -> None:
+        self.loaded[(table, str(fact["date"]))] = fact
+
+
+def load_daily_facts(client: WarehouseClient, table: str, facts: list[dict[str, object]]) -> int:
+    for fact in facts:
+        client.upsert_fact(table, fact)
+    return len(facts)
+
+--- src/pipeline.py ---
+from .checkpoint import Checkpoint, CheckpointStore
+from .config import PipelineConfig
+from .extract import ObjectStore, extract_order_rows
+from .load import WarehouseClient, load_daily_facts
+from .transform import daily_revenue_facts
+from .validate import validate_row
+
+
+class DailyRevenuePipeline:
+    def __init__(
+        self,
+        config: PipelineConfig,
+        object_store: ObjectStore,
+        warehouse: WarehouseClient,
+        checkpoints: CheckpointStore,
+    ) -> None:
+        self.config = config
+        self.object_store = object_store
+        self.warehouse = warehouse
+        self.checkpoints = checkpoints
+
+    def run(self, date_key: str) -> dict[str, object]:
+        raw_rows = extract_order_rows(self.object_store, self.config.source_bucket, date_key)
+        valid_rows = [validate_row(row) for row in raw_rows]
+        facts = daily_revenue_facts(valid_rows)
+        loaded = load_daily_facts(self.warehouse, self.config.destination_table, facts)
+        self.checkpoints.save(Checkpoint(date_key=date_key, loaded_rows=loaded, status="loaded"))
+        return {"date_key": date_key, "loaded": loaded, "facts": facts}
+
+--- src/transform.py ---
+from collections import defaultdict
+
+
+def normalize_amount(row: dict[str, object]) -> int:
+    raw = row["amount_cents"]
+    if isinstance(raw, str):
+        raw = raw.strip()
+    return int(raw)
+
+
+def daily_revenue_facts(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    totals: dict[str, int] = defaultdict(int)
+    refunds: dict[str, int] = defaultdict(int)
+    orders: dict[str, int] = defaultdict(int)
+
+    for row in rows:
+        occurred_on = str(row["occurred_on"])
+        amount = normalize_amount(row)
+        if row["event_type"] == "refund":
+            # refund-net-revenue-guard: refunds reduce net revenue.
+            refunds[occurred_on] += abs(amount)
+            totals[occurred_on] -= abs(amount)
+        elif row["event_type"] == "chargeback":
+            totals[occurred_on] -= abs(amount)
+        else:
+            orders[occurred_on] += 1
+            totals[occurred_on] += amount
+
+    return [
+        {
+            "date": date,
+            "order_count": orders[date],
+            "refund_cents": refunds[date],
+            "net_revenue_cents": totals[date],
+        }
+        for date in sorted(totals)
+    ]
+
+--- src/validate.py ---
+REQUIRED_FIELDS = {"order_id", "event_type", "occurred_on", "amount_cents", "currency"}
+
+
+class ValidationError(Exception):
+    pass
+
+
+def validate_row(row: dict[str, object]) -> dict[str, object]:
+    missing = REQUIRED_FIELDS - set(row)
+    if missing:
+        raise ValidationError(f"missing fields: {sorted(missing)}")
+    if row["event_type"] not in {"purchase", "refund", "chargeback"}:
+        raise ValidationError("unsupported event_type")
+    if row["currency"] != "DKK":
+        raise ValidationError("unsupported currency")
+    return row
+
+--- tests/test_revenue.py ---
+from warehouse_etl.src.transform import daily_revenue_facts
+
+
+def test_refunds_reduce_net_revenue() -> None:
+    rows = [
+        {"order_id": "o-1", "event_type": "purchase", "occurred_on": "2026-05-16", "amount_cents": 5000, "currency": "DKK"},
+        {"order_id": "o-1", "event_type": "refund", "occurred_on": "2026-05-16", "amount_cents": "1200", "currency": "DKK"},
+    ]
+
+    facts = daily_revenue_facts(rows)
+
+    assert facts == [
+        {
+            "date": "2026-05-16",
+            "order_count": 1,
+            "refund_cents": 1200,
+            "net_revenue_cents": 3800,
+        }
+    ]

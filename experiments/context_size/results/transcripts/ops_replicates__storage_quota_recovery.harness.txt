@@ -1,0 +1,46 @@
+# RTK-style summaries for ops_replicates__storage_quota_recovery
+
+$ rtk find . -type f
+dirs: README.md/ 1, docs/ 1, scenario.json/ 1, scripts/ 2
+ext: .json(1), .md(2), .sh(2)
+sample: README.md, docs/incident_report.md, scenario.json, scripts/audit_scratch.sh, scripts/rebalance_scratch.sh
+
+$ rtk grep 'Disk quota exceeded|cleanup_threshold|rebalance_scratch|checkpoint|lustre-scratch' .
+README.md: 3 shown
+  L3: This fixture models an HPC operations incident where scratch storage exceeds project quota and new jobs fail during chec
+  L8: - `scripts/audit_scratch.sh` reports heavy directories and recent checkpoint growth.
+  L9: - `scripts/rebalance_scratch.sh` moves cold artifacts to object storage.
+docs/incident_report.md: 3 shown
+  L5: Summary: `bioinf-prod` exceeded the Lustre scratch soft quota after several GPU training jobs wrote dense checkpoints ev
+  L10: - 08:24: Users reported failed `cohort042-train` jobs with checkpoint write errors.
+  L11: - 08:39: Operators ran `scripts/audit_scratch.sh /scratch/bioinf` and identified old checkpoint directories.
+scenario.json: 1 shown
+  L2: "search_pattern": "Disk quota exceeded|cleanup_threshold|rebalance_scratch|checkpoint|lustre-scratch"
+scripts/audit_scratch.sh: 2 shown
+  L12: echo "== checkpoint files newer than 24h =="
+  L13: find "${root}" -path "*/checkpoints/*" -mtime -1 -type f -printf "%s %p\n" 2>/dev/null |
+scripts/rebalance_scratch.sh: 3 shown
+  L14: echo "archiving cold checkpoints for ${source_project}"
+  L15: find "${source_dir}/checkpoints" -type f -mtime +14 -name "epoch_*.pt" -print0 |
+  L16: while IFS= read -r -d '' checkpoint; do
+
+# Graphify-style report for ops_replicates__storage_quota_recovery
+
+Files: 5
+Extensions: .json:1, .md:2, .sh:2
+
+## Communities
+- automation: 2 files (scripts/audit_scratch.sh, scripts/rebalance_scratch.sh)
+- docs: 2 files (README.md, docs/incident_report.md)
+- scenario.json: 1 files (scenario.json)
+
+## Key Symbols
+- README.md: Storage Quota Recovery
+- docs/incident_report.md: Scratch Quota Incident Report
+
+## Imports and Entrypoints
+
+## Suggested Next Reads
+- README.md
+- docs/incident_report.md
+- scenario.json

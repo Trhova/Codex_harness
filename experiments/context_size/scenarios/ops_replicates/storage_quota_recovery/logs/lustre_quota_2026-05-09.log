@@ -1,0 +1,4 @@
+2026-05-09T08:10:02 filesystem=lustre-scratch project=bioinf-prod used=186.2T soft=180T hard=200T usage=93.1%
+2026-05-09T08:11:14 alert=ScratchQuotaWarning threshold=85% state=firing
+2026-05-09T09:43:27 cleanup project=cohort_041 archived=11.8T deleted_tmp=2.4T
+2026-05-09T10:05:58 filesystem=lustre-scratch project=bioinf-prod used=171.6T soft=180T hard=200T usage=85.8%

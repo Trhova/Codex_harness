@@ -1,0 +1,64 @@
+# RTK-style summaries for frontend_replicates__collab_canvas_board
+
+$ rtk find . -type f
+dirs: README.md/ 1, docs/ 1, index.html/ 1, package.json/ 1, scenario.json/ 1, src/ 6, styles/ 1
+ext: .css(1), .html(1), .js(6), .json(2), .md(2)
+sample: README.md, docs/task.md, index.html, package.json, scenario.json, src/app.js, src/comments.js, src/data.js
+
+$ rtk grep 'boardLayers|locked|hitTestLayer|renderLayerStack' .
+README.md: 2 shown
+  L7: - Ask the agent to add a locked `handoff annotations` layer that renders above sketches but below comments, and make sur
+  L11: `boardLayers|locked|hitTestLayer|renderLayerStack`
+docs/task.md: 3 shown
+  L5: - `src/data.js` owns layer ordering and the `locked` flag.
+  L6: - `src/renderer.js` draws layers in array order and dims locked shapes.
+  L7: - `src/selection.js` already skips locked layers during hit testing.
+scenario.json: 1 shown
+  L2: "search_pattern": "boardLayers|locked|hitTestLayer|renderLayerStack"
+src/app.js: 3 shown
+  L1: import { boardLayers, boardComments } from "./data.js";
+  L2: import { renderLayerStack } from "./renderer.js";
+  L4: import { hitTestLayer } from "./selection.js";
+src/data.js: 3 shown
+  L1: export const boardLayers = [
+  L5: locked: false,
+  L15: locked: false,
+src/renderer.js: 3 shown
+  L1: export function renderLayerStack(canvas, boardLayers, selectedShapeId) {
+  L6: boardLayers.forEach((layer) => {
+  L8: drawShape(ctx, shape, shape.id === selectedShapeId, layer.locked);
+src/selection.js: 3 shown
+  L1: export function hitTestLayer(boardLayers, point) {
+  L2: for (let layerIndex = boardLayers.length - 1; layerIndex >= 0; layerIndex -= 1) {
+  L3: const layer = boardLayers[layerIndex];
+
+# Graphify-style report for frontend_replicates__collab_canvas_board
+
+Files: 12
+Extensions: .css:1, .html:1, .js:6, .json:2, .md:2
+
+## Communities
+- docs: 2 files (README.md, docs/task.md)
+- frontend-assets: 1 files (styles/board.css)
+- index.html: 1 files (index.html)
+- package.json: 1 files (package.json)
+- runtime: 6 files (src/app.js, src/comments.js, src/data.js, src/renderer.js, src/selection.js)
+- scenario.json: 1 files (scenario.json)
+
+## Key Symbols
+- README.md: Collaborative Canvas Board Fixture
+- docs/task.md: Task Notes
+- src/app.js: canvas, toolRail, commentsPanel, state, rect, point
+- src/comments.js: renderComments
+- src/data.js: boardLayers, boardComments
+- src/renderer.js: renderLayerStack, drawBackground, drawShape, ctx, x, y
+- src/selection.js: hitTestLayer, containsPoint, layerIndex, layer, shapeIndex, shape, length, d1
+- src/tools.js: createToolRail, tools, button
+
+## Imports and Entrypoints
+- src/app.js: import { boardLayers, boardComments } from "./data.js";; import { renderLayerStack } from "./renderer.js";; import { createToolRail } from "./tools.js";; import { hitTestLayer } from "./selection.js";; import { renderComments } from "./comments.js";
+
+## Suggested Next Reads
+- README.md
+- docs/task.md
+- index.html

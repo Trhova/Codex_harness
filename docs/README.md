@@ -14,6 +14,6 @@ Start here if you are turning this repo into your Codex working handbook.
 | [Commands](commands.md) | Copy-pasteable command reference. |
 | [Prompt Examples](prompts.md) | Subagent and task prompts. |
 | [Examples](examples.md) | Example workflows. |
-| [Context Size Experiment](../experiments/context_size/README.md) | Reproducible token-proxy comparison for raw scans versus RTK/Graphify-style summaries. |
+| [Context Size Experiment](../experiments/context_size/README.md) | Reproducible tokenizer-counted comparison for raw scans versus RTK/Graphify-style summaries. |
 | [Rollback](rollback.md) | Deactivate and uninstall safely. |
 | [FAQ](faq.md) | Common confusion and troubleshooting. |

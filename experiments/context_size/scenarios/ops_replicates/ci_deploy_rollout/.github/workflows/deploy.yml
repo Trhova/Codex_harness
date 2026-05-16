@@ -1,0 +1,41 @@
+name: deploy-api
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options:
+          - staging
+          - production
+        required: true
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: echo "image=registry.internal.example.com/search-api:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+      - run: docker build -t "${{ steps.meta.outputs.image }}" .
+      - run: docker push "${{ steps.meta.outputs.image }}"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/deploy.sh "${{ github.event.inputs.environment || 'staging' }}" "${{ needs.build.outputs.image }}"
+
+  smoke-test:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/smoke_test.sh "${{ github.event.inputs.environment || 'staging' }}"

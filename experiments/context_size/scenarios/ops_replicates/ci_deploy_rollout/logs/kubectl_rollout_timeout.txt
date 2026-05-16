@@ -1,0 +1,4 @@
+Waiting for deployment "search-api" rollout to finish: 1 old replicas are pending termination...
+error: timed out waiting for the condition
+pod/search-api-5ccdb9f758-q9x9f readiness probe failed: HTTP probe failed with statuscode: 503
+deployment.apps/search-api annotation deploy.image=registry.internal.example.com/search-api:02e8bad

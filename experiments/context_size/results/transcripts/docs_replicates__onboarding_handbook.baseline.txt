@@ -1,0 +1,90 @@
+# Baseline raw transcript for docs_replicates__onboarding_handbook
+
+$ find . -type f
+./README.md
+./docs/release_checklist.md
+./docs/start_here.md
+./docs/troubleshooting.md
+./scenario.json
+./scripts/validate_handbook.py
+
+$ rg -n 'onboarding|setup|approval|workflow|troubleshooting|checklist' .
+README.md:1:# Onboarding Handbook Fixture
+README.md:3:This fixture represents a documentation-heavy repository for onboarding new users to a technical platform. It has guides, checklists, and a tiny validation script.
+docs/release_checklist.md:1:# Release Checklist
+docs/release_checklist.md:5:- confirm the setup instructions still match the current workflow
+docs/release_checklist.md:6:- verify approval names and links
+docs/release_checklist.md:8:- update troubleshooting examples
+docs/release_checklist.md:9:- ask one new user to follow the checklist
+docs/start_here.md:3:The onboarding workflow begins with account setup, local tool installation, and a short approval checklist. New users should run the validation script before asking for production access.
+docs/start_here.md:10:4. Complete the approval checklist.
+docs/start_here.md:11:5. Save troubleshooting notes in the team knowledge base.
+docs/troubleshooting.md:1:# Troubleshooting
+docs/troubleshooting.md:3:Common onboarding problems include missing environment variables, expired approval links, stale cached credentials, and incomplete setup steps.
+docs/troubleshooting.md:5:If the validation script fails, read the exact message first. Do not rerun every setup command blindly; update only the step that failed.
+scenario.json:2:  "search_pattern": "onboarding|setup|approval|workflow|troubleshooting|checklist"
+scripts/validate_handbook.py:4:REQUIRED_TERMS = ["onboarding", "setup", "approval", "workflow", "troubleshooting"]
+
+$ broad context scan: full text files
+--- README.md ---
+# Onboarding Handbook Fixture
+
+This fixture represents a documentation-heavy repository for onboarding new users to a technical platform. It has guides, checklists, and a tiny validation script.
+
+--- docs/release_checklist.md ---
+# Release Checklist
+
+Before publishing a handbook update:
+
+- confirm the setup instructions still match the current workflow
+- verify approval names and links
+- run the validation script
+- update troubleshooting examples
+- ask one new user to follow the checklist
+
+--- docs/start_here.md ---
+# Start Here
+
+The onboarding workflow begins with account setup, local tool installation, and a short approval checklist. New users should run the validation script before asking for production access.
+
+## Steps
+
+1. Read the access policy.
+2. Install the local tools.
+3. Run `scripts/validate_handbook.py`.
+4. Complete the approval checklist.
+5. Save troubleshooting notes in the team knowledge base.
+
+--- docs/troubleshooting.md ---
+# Troubleshooting
+
+Common onboarding problems include missing environment variables, expired approval links, stale cached credentials, and incomplete setup steps.
+
+If the validation script fails, read the exact message first. Do not rerun every setup command blindly; update only the step that failed.
+
+--- scenario.json ---
+{
+  "search_pattern": "onboarding|setup|approval|workflow|troubleshooting|checklist"
+}
+
+--- scripts/validate_handbook.py ---
+from pathlib import Path
+
+
+REQUIRED_TERMS = ["onboarding", "setup", "approval", "workflow", "troubleshooting"]
+
+
+def read_docs(root: Path) -> str:
+    return "\n".join(path.read_text(encoding="utf-8") for path in sorted((root / "docs").glob("*.md")))
+
+
+def missing_terms(text: str) -> list[str]:
+    lowered = text.lower()
+    return [term for term in REQUIRED_TERMS if term not in lowered]
+
+
+if __name__ == "__main__":
+    missing = missing_terms(read_docs(Path(__file__).resolve().parents[1]))
+    if missing:
+        raise SystemExit(f"Missing handbook terms: {', '.join(missing)}")
+    print("Handbook validation passed")

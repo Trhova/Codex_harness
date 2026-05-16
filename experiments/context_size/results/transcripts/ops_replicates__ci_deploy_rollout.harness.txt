@@ -1,0 +1,48 @@
+# RTK-style summaries for ops_replicates__ci_deploy_rollout
+
+$ rtk find . -type f
+dirs: README.md/ 1, docs/ 1, logs/ 2, scenario.json/ 1, scripts/ 2
+ext: .json(1), .md(2), .sh(2), .txt(2)
+sample: README.md, docs/deploy_runbook.md, logs/actions_2026-05-12.txt, logs/kubectl_rollout_timeout.txt, scenario.json, scripts/deploy.sh, scripts/smoke_test.sh
+
+$ rtk grep 'deploy.image|rollout status|readiness probe|smoke_test|GITHUB_SHA' .
+README.md: 1 shown
+  L9: - `scripts/smoke_test.sh` checks health and version endpoints.
+docs/deploy_runbook.md: 3 shown
+  L7: scripts/smoke_test.sh staging
+  L14: - If `kubectl rollout status` times out, inspect `kubectl -n <namespace> describe pod -l app=search-api`.
+  L15: - If the smoke test fails on `/version`, confirm the deployment annotation `deploy.image` matches the Actions build outp
+logs/kubectl_rollout_timeout.txt: 2 shown
+  L3: pod/search-api-5ccdb9f758-q9x9f readiness probe failed: HTTP probe failed with statuscode: 503
+  L4: deployment.apps/search-api annotation deploy.image=registry.internal.example.com/search-api:02e8bad
+scenario.json: 1 shown
+  L2: "search_pattern": "deploy.image|rollout status|readiness probe|smoke_test|GITHUB_SHA"
+scripts/deploy.sh: 2 shown
+  L22: kubectl -n "${NAMESPACE}" rollout status "deployment/${DEPLOYMENT}" --timeout="${ROLLOUT_TIMEOUT}"
+  L23: kubectl -n "${NAMESPACE}" annotate deployment "${DEPLOYMENT}" "deploy.image=${image}" --overwrite
+scripts/smoke_test.sh: 1 shown
+  L4: environment="${1:?usage: smoke_test.sh <environment>}"
+
+# Graphify-style report for ops_replicates__ci_deploy_rollout
+
+Files: 7
+Extensions: .json:1, .md:2, .sh:2, .txt:2
+
+## Communities
+- automation: 2 files (scripts/deploy.sh, scripts/smoke_test.sh)
+- docs: 2 files (README.md, docs/deploy_runbook.md)
+- logs: 2 files (logs/actions_2026-05-12.txt, logs/kubectl_rollout_timeout.txt)
+- scenario.json: 1 files (scenario.json)
+
+## Key Symbols
+- README.md: CI Deploy Rollout
+- docs/deploy_runbook.md: Deploy Runbook
+
+## Imports and Entrypoints
+- scripts/deploy.sh: source "${config}"
+- scripts/smoke_test.sh: source "configs/${environment}.env"
+
+## Suggested Next Reads
+- README.md
+- docs/deploy_runbook.md
+- logs/actions_2026-05-12.txt

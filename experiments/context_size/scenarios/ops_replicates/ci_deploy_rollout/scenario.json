@@ -1,0 +1,3 @@
+{
+  "search_pattern": "deploy.image|rollout status|readiness probe|smoke_test|GITHUB_SHA"
+}

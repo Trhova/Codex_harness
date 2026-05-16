@@ -1,0 +1,3 @@
+{
+  "search_pattern": "afterok|SLURM_ARRAY_TASK_ID|checkpoint|preemption|collect_job_health"
+}

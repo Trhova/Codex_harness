@@ -1,0 +1,14 @@
+model:
+  name: variant-transformer-small
+  precision: bf16
+  max_epochs: 40
+data:
+  feature_root: /scratch/bioinf/cohort_042/features
+  validation_manifest: /work/bioinf/manifests/cohort_042_validation.tsv
+checkpoint:
+  dir: /scratch/bioinf/cohort_042/checkpoints
+  resume: true
+  save_every_minutes: 30
+slurm:
+  gpu_partition: gpu
+  account: bioinf-prod

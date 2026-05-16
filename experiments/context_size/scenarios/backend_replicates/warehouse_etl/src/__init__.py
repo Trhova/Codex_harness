@@ -1,0 +1,1 @@
+"""Warehouse ETL replica."""

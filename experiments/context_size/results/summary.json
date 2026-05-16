@@ -1,32 +1,156 @@
 [
   {
+    "scenario": "backend_replicates__billing_api",
+    "tokenizer": "o200k_base",
+    "files": 10,
+    "baseline_chars": 9967,
+    "harness_chars": 3159,
+    "baseline_tokens": 2288,
+    "harness_tokens": 810,
+    "token_delta": -1478,
+    "token_delta_percent": -64.6
+  },
+  {
+    "scenario": "backend_replicates__session_gateway",
+    "tokenizer": "o200k_base",
+    "files": 10,
+    "baseline_chars": 7406,
+    "harness_chars": 2861,
+    "baseline_tokens": 1705,
+    "harness_tokens": 748,
+    "token_delta": -957,
+    "token_delta_percent": -56.1
+  },
+  {
+    "scenario": "backend_replicates__warehouse_etl",
+    "tokenizer": "o200k_base",
+    "files": 12,
+    "baseline_chars": 7681,
+    "harness_chars": 2793,
+    "baseline_tokens": 1886,
+    "harness_tokens": 784,
+    "token_delta": -1102,
+    "token_delta_percent": -58.4
+  },
+  {
+    "scenario": "docs_replicates__onboarding_handbook",
+    "tokenizer": "o200k_base",
+    "files": 6,
+    "baseline_chars": 3876,
+    "harness_chars": 2285,
+    "baseline_tokens": 854,
+    "harness_tokens": 604,
+    "token_delta": -250,
+    "token_delta_percent": -29.3
+  },
+  {
+    "scenario": "docs_replicates__policy_process",
+    "tokenizer": "o200k_base",
+    "files": 6,
+    "baseline_chars": 3422,
+    "harness_chars": 2208,
+    "baseline_tokens": 792,
+    "harness_tokens": 605,
+    "token_delta": -187,
+    "token_delta_percent": -23.6
+  },
+  {
+    "scenario": "frontend_replicates__collab_canvas_board",
+    "tokenizer": "o200k_base",
+    "files": 12,
+    "baseline_chars": 11477,
+    "harness_chars": 2935,
+    "baseline_tokens": 3298,
+    "harness_tokens": 863,
+    "token_delta": -2435,
+    "token_delta_percent": -73.8
+  },
+  {
+    "scenario": "frontend_replicates__material_lab_configurator",
+    "tokenizer": "o200k_base",
+    "files": 10,
+    "baseline_chars": 9462,
+    "harness_chars": 2619,
+    "baseline_tokens": 2578,
+    "harness_tokens": 757,
+    "token_delta": -1821,
+    "token_delta_percent": -70.6
+  },
+  {
+    "scenario": "frontend_replicates__metro_ops_3d",
+    "tokenizer": "o200k_base",
+    "files": 11,
+    "baseline_chars": 13763,
+    "harness_chars": 2876,
+    "baseline_tokens": 3904,
+    "harness_tokens": 840,
+    "token_delta": -3064,
+    "token_delta_percent": -78.5
+  },
+  {
     "scenario": "hpc_jobs",
+    "tokenizer": "o200k_base",
     "files": 6,
     "baseline_chars": 4206,
     "harness_chars": 1993,
-    "baseline_tokens": 1052,
-    "harness_tokens": 499,
-    "token_delta": -553,
-    "token_delta_percent": -52.6
+    "baseline_tokens": 1190,
+    "harness_tokens": 613,
+    "token_delta": -577,
+    "token_delta_percent": -48.5
+  },
+  {
+    "scenario": "ops_replicates__ci_deploy_rollout",
+    "tokenizer": "o200k_base",
+    "files": 7,
+    "baseline_chars": 5481,
+    "harness_chars": 2201,
+    "baseline_tokens": 1436,
+    "harness_tokens": 667,
+    "token_delta": -769,
+    "token_delta_percent": -53.6
+  },
+  {
+    "scenario": "ops_replicates__hpc_batch_pipeline",
+    "tokenizer": "o200k_base",
+    "files": 9,
+    "baseline_chars": 10031,
+    "harness_chars": 3432,
+    "baseline_tokens": 2603,
+    "harness_tokens": 967,
+    "token_delta": -1636,
+    "token_delta_percent": -62.9
+  },
+  {
+    "scenario": "ops_replicates__storage_quota_recovery",
+    "tokenizer": "o200k_base",
+    "files": 5,
+    "baseline_chars": 5216,
+    "harness_chars": 2136,
+    "baseline_tokens": 1327,
+    "harness_tokens": 605,
+    "token_delta": -722,
+    "token_delta_percent": -54.4
   },
   {
     "scenario": "python_service",
+    "tokenizer": "o200k_base",
     "files": 7,
     "baseline_chars": 6847,
     "harness_chars": 2639,
-    "baseline_tokens": 1712,
-    "harness_tokens": 660,
-    "token_delta": -1052,
-    "token_delta_percent": -61.4
+    "baseline_tokens": 1617,
+    "harness_tokens": 717,
+    "token_delta": -900,
+    "token_delta_percent": -55.7
   },
   {
     "scenario": "three_d_city",
+    "tokenizer": "o200k_base",
     "files": 7,
     "baseline_chars": 7255,
     "harness_chars": 2248,
-    "baseline_tokens": 1814,
-    "harness_tokens": 562,
-    "token_delta": -1252,
-    "token_delta_percent": -69.0
+    "baseline_tokens": 2063,
+    "harness_tokens": 674,
+    "token_delta": -1389,
+    "token_delta_percent": -67.3
   }
 ]

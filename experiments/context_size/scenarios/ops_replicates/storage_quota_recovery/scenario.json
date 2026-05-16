@@ -1,0 +1,3 @@
+{
+  "search_pattern": "Disk quota exceeded|cleanup_threshold|rebalance_scratch|checkpoint|lustre-scratch"
+}

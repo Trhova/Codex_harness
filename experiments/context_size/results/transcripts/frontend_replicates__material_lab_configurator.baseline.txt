@@ -1,0 +1,321 @@
+# Baseline raw transcript for frontend_replicates__material_lab_configurator
+
+$ find . -type f
+./README.md
+./docs/task.md
+./index.html
+./package.json
+./scenario.json
+./src/app.js
+./src/controls.js
+./src/presets.js
+./src/preview.js
+./styles/configurator.css
+
+$ rg -n 'materialPresets|applyPreset|environmentShimmer|renderPreview' .
+README.md:11:`materialPresets|applyPreset|environmentShimmer|renderPreview`
+docs/task.md:7:- `src/preview.js` determines how `environmentShimmer`, roughness, and clearcoat appear.
+docs/task.md:9:Expected edit target for the graphite task is `materialPresets` only.
+index.html:20:          <label><input name="environmentShimmer" type="checkbox" /> Environment shimmer</label>
+scenario.json:2:  "search_pattern": "materialPresets|applyPreset|environmentShimmer|renderPreview"
+src/app.js:1:import { materialPresets } from "./presets.js";
+src/app.js:2:import { renderPreview } from "./preview.js";
+src/app.js:10:  selectedPreset: materialPresets[0].id,
+src/app.js:11:  material: { ...materialPresets[0].material },
+src/app.js:14:function applyPreset(presetId) {
+src/app.js:15:  const preset = materialPresets.find((item) => item.id === presetId);
+src/app.js:22:  renderPresetButtons(presetList, materialPresets, state.selectedPreset, applyPreset);
+src/app.js:23:  renderPreview(canvas, state.material);
+src/app.js:28:  renderPreview(canvas, state.material);
+src/app.js:31:renderPresetButtons(presetList, materialPresets, state.selectedPreset, applyPreset);
+src/app.js:33:renderPreview(canvas, state.material);
+src/controls.js:16:  form.elements.environmentShimmer.checked = material.environmentShimmer;
+src/controls.js:22:      environmentShimmer: form.elements.environmentShimmer.checked,
+src/presets.js:1:export const materialPresets = [
+src/presets.js:10:      environmentShimmer: true,
+src/presets.js:21:      environmentShimmer: true,
+src/presets.js:32:      environmentShimmer: false,
+src/preview.js:1:export function renderPreview(canvas, material) {
+src/preview.js:26:  if (material.environmentShimmer) {
+
+$ broad context scan: full text files
+--- README.md ---
+# Material Lab Configurator Fixture
+
+This fixture is a frontend product material configurator with a small canvas preview, preset data, and stateful UI controls.
+
+Primary comparison task:
+
+- Ask the agent to add a `graphite matte` preset that uses a dark neutral base, low clearcoat, and disables environment shimmer while preserving the existing preset order.
+
+Good transcript search pattern:
+
+`materialPresets|applyPreset|environmentShimmer|renderPreview`
+
+--- docs/task.md ---
+# Task Notes
+
+Useful areas for agent comparison:
+
+- `src/presets.js` is the expected target for adding material choices.
+- `src/controls.js` binds preset selection and sliders.
+- `src/preview.js` determines how `environmentShimmer`, roughness, and clearcoat appear.
+
+Expected edit target for the graphite task is `materialPresets` only.
+
+--- index.html ---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Material Lab</title>
+    <link rel="stylesheet" href="./styles/configurator.css" />
+  </head>
+  <body>
+    <main class="workspace">
+      <section class="preview">
+        <canvas id="preview-canvas" width="900" height="620"></canvas>
+      </section>
+      <section class="inspector">
+        <h1>Material Lab</h1>
+        <div id="preset-list" class="preset-list"></div>
+        <form id="material-form" class="material-form">
+          <label>Roughness <input name="roughness" type="range" min="0" max="1" step="0.01" /></label>
+          <label>Clearcoat <input name="clearcoat" type="range" min="0" max="1" step="0.01" /></label>
+          <label><input name="environmentShimmer" type="checkbox" /> Environment shimmer</label>
+        </form>
+      </section>
+    </main>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
+
+--- package.json ---
+{
+  "name": "material-lab-configurator-fixture",
+  "private": true,
+  "type": "module"
+}
+
+--- scenario.json ---
+{
+  "search_pattern": "materialPresets|applyPreset|environmentShimmer|renderPreview"
+}
+
+--- src/app.js ---
+import { materialPresets } from "./presets.js";
+import { renderPreview } from "./preview.js";
+import { bindMaterialForm, renderPresetButtons } from "./controls.js";
+
+const canvas = document.querySelector("#preview-canvas");
+const presetList = document.querySelector("#preset-list");
+const form = document.querySelector("#material-form");
+
+const state = {
+  selectedPreset: materialPresets[0].id,
+  material: { ...materialPresets[0].material },
+};
+
+function applyPreset(presetId) {
+  const preset = materialPresets.find((item) => item.id === presetId);
+  if (!preset) {
+    return;
+  }
+  state.selectedPreset = preset.id;
+  state.material = { ...preset.material };
+  bindMaterialForm(form, state.material, updateMaterial);
+  renderPresetButtons(presetList, materialPresets, state.selectedPreset, applyPreset);
+  renderPreview(canvas, state.material);
+}
+
+function updateMaterial(patch) {
+  state.material = { ...state.material, ...patch };
+  renderPreview(canvas, state.material);
+}
+
+renderPresetButtons(presetList, materialPresets, state.selectedPreset, applyPreset);
+bindMaterialForm(form, state.material, updateMaterial);
+renderPreview(canvas, state.material);
+
+--- src/controls.js ---
+export function renderPresetButtons(host, presets, selectedPreset, onSelect) {
+  host.innerHTML = "";
+  presets.forEach((preset) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = preset.id === selectedPreset ? "preset active" : "preset";
+    button.textContent = preset.label;
+    button.addEventListener("click", () => onSelect(preset.id));
+    host.append(button);
+  });
+}
+
+export function bindMaterialForm(form, material, onChange) {
+  form.elements.roughness.value = material.roughness;
+  form.elements.clearcoat.value = material.clearcoat;
+  form.elements.environmentShimmer.checked = material.environmentShimmer;
+
+  form.oninput = () => {
+    onChange({
+      roughness: Number(form.elements.roughness.value),
+      clearcoat: Number(form.elements.clearcoat.value),
+      environmentShimmer: form.elements.environmentShimmer.checked,
+    });
+  };
+}
+
+--- src/presets.js ---
+export const materialPresets = [
+  {
+    id: "ceramic-white",
+    label: "Ceramic white",
+    material: {
+      baseColor: "#f2f4ef",
+      accentColor: "#8fa9b8",
+      roughness: 0.38,
+      clearcoat: 0.62,
+      environmentShimmer: true,
+    },
+  },
+  {
+    id: "solar-copper",
+    label: "Solar copper",
+    material: {
+      baseColor: "#b86f42",
+      accentColor: "#ffd166",
+      roughness: 0.28,
+      clearcoat: 0.74,
+      environmentShimmer: true,
+    },
+  },
+  {
+    id: "basalt-frost",
+    label: "Basalt frost",
+    material: {
+      baseColor: "#56616d",
+      accentColor: "#b8d8f4",
+      roughness: 0.7,
+      clearcoat: 0.2,
+      environmentShimmer: false,
+    },
+  },
+];
+
+--- src/preview.js ---
+export function renderPreview(canvas, material) {
+  const ctx = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+  const centerX = width * 0.5;
+  const centerY = height * 0.52;
+  const radius = Math.min(width, height) * 0.24;
+
+  ctx.clearRect(0, 0, width, height);
+  const background = ctx.createLinearGradient(0, 0, width, height);
+  background.addColorStop(0, "#111923");
+  background.addColorStop(1, "#222b35");
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, width, height);
+
+  const productGradient = ctx.createRadialGradient(centerX - radius * 0.4, centerY - radius * 0.5, 8, centerX, centerY, radius);
+  productGradient.addColorStop(0, material.accentColor);
+  productGradient.addColorStop(material.roughness, material.baseColor);
+  productGradient.addColorStop(1, "#12161b");
+
+  ctx.fillStyle = productGradient;
+  ctx.beginPath();
+  ctx.ellipse(centerX, centerY, radius * 1.35, radius, -0.18, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (material.environmentShimmer) {
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.18 + material.clearcoat * 0.35})`;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(centerX - radius * 0.34, centerY - radius * 0.28, radius * 0.52, 3.8, 5.5);
+    ctx.stroke();
+  }
+}
+
+--- styles/configurator.css ---
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #edf0f5;
+  color: #20252c;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  min-height: 100vh;
+}
+
+.preview {
+  display: grid;
+  place-items: center;
+  padding: 28px;
+}
+
+#preview-canvas {
+  width: min(100%, 980px);
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 18px 42px rgba(31, 39, 48, 0.22);
+}
+
+.inspector {
+  padding: 24px;
+  border-left: 1px solid #ccd3dc;
+  background: #ffffff;
+}
+
+h1 {
+  margin: 0 0 20px;
+  font-size: 24px;
+}
+
+.preset-list,
+.material-form {
+  display: grid;
+  gap: 12px;
+}
+
+.preset {
+  border: 1px solid #c8d0dc;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #f7f9fc;
+  text-align: left;
+}
+
+.preset.active {
+  border-color: #2f6fed;
+  background: #eef4ff;
+}
+
+.material-form {
+  margin-top: 24px;
+}
+
+.material-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+@media (max-width: 780px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .inspector {
+    border-left: 0;
+    border-top: 1px solid #ccd3dc;
+  }
+}

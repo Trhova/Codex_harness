@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Metro Ops 3D</title>
+    <link rel="stylesheet" href="./styles/dashboard.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="viewport" aria-label="3D metro operations scene">
+        <canvas id="city-canvas"></canvas>
+        <div class="hud">
+          <div>
+            <span class="label">Mode</span>
+            <strong id="mode-label">Evening peak</strong>
+          </div>
+          <div>
+            <span class="label">Selected corridor</span>
+            <strong id="corridor-label">Harbor loop</strong>
+          </div>
+        </div>
+      </section>
+      <aside class="panel" aria-label="Operational dashboard">
+        <h1>Metro Ops</h1>
+        <div id="summary-panel"></div>
+        <div id="route-panel"></div>
+        <div class="controls" id="camera-controls"></div>
+      </aside>
+    </main>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

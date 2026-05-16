@@ -1,0 +1,5 @@
+2026-05-12T10:04:11Z build image=registry.internal.example.com/search-api:7dd51d729ab1e4d4a1c97a4a5a74fb09bdb7b211
+2026-05-12T10:05:38Z docker push complete digest=sha256:8a39d
+2026-05-12T10:06:02Z deploy environment=staging namespace=search-staging
+2026-05-12T10:06:44Z deployment "search-api" successfully rolled out
+2026-05-12T10:06:50Z smoke tests passed for staging

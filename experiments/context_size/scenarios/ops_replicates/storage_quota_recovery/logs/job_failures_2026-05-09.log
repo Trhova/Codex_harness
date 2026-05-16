@@ -1,0 +1,4 @@
+2026-05-09T08:22:41 job=442901 name=cohort042-train user=mluser state=FAILED exit=1:0
+2026-05-09T08:22:42 stderr="OSError: [Errno 122] Disk quota exceeded: '/scratch/bioinf/cohort_042/checkpoints/epoch_014.pt'"
+2026-05-09T08:31:03 job=442918 name=cohort041-train user=mluser state=FAILED exit=1:0
+2026-05-09T08:31:04 stderr="torch.save failed while writing checkpoint shard"

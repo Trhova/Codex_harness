@@ -1,0 +1,53 @@
+# RTK-style summaries for docs_replicates__policy_process
+
+$ rtk find . -type f
+dirs: README.md/ 1, docs/ 3, scenario.json/ 1, tools/ 1
+ext: .json(1), .md(4), .py(1)
+sample: README.md, docs/audit_notes.md, docs/exceptions.md, docs/policy.md, scenario.json, tools/summarize_policy.py
+
+$ rtk grep 'policy|exception|owner|risk|review|audit' .
+README.md: 2 shown
+  L1: # Policy Process Fixture
+  L3: This fixture mimics a small policy repository with ownership rules, exception handling, and audit review notes.
+docs/audit_notes.md: 2 shown
+  L1: # Audit Notes
+  L3: The audit review checks whether each policy owner has updated stale exceptions and whether risk labels still match actua
+docs/exceptions.md: 3 shown
+  L1: # Exception Process
+  L3: An exception request must explain the policy requirement, the reason for the exception, the risk, the proposed mitigatio
+  L5: Temporary exceptions expire after the next audit unless renewed.
+docs/policy.md: 3 shown
+  L1: # Data Handling Policy
+  L3: Every dataset must have an owner, a review date, and a documented risk category. Exceptions require written approval fro
+  L5: High-risk data cannot be copied into examples, tickets, prompts, or public repositories.
+scenario.json: 1 shown
+  L2: "search_pattern": "policy|exception|owner|risk|review|audit"
+tools/summarize_policy.py: 3 shown
+  L4: def policy_files(root: Path) -> list[Path]:
+  L8: def count_policy_mentions(root: Path) -> dict[str, int]:
+  L9: terms = ["policy", "exception", "owner", "risk", "review", "audit"]
+
+# Graphify-style report for docs_replicates__policy_process
+
+Files: 6
+Extensions: .json:1, .md:4, .py:1
+
+## Communities
+- docs: 4 files (README.md, docs/audit_notes.md, docs/exceptions.md, docs/policy.md)
+- scenario.json: 1 files (scenario.json)
+- tools: 1 files (tools/summarize_policy.py)
+
+## Key Symbols
+- README.md: Policy Process Fixture
+- docs/audit_notes.md: Audit Notes
+- docs/exceptions.md: Exception Process
+- docs/policy.md: Data Handling Policy
+- tools/summarize_policy.py: policy_files, count_policy_mentions
+
+## Imports and Entrypoints
+- tools/summarize_policy.py: from pathlib import Path
+
+## Suggested Next Reads
+- README.md
+- docs/audit_notes.md
+- docs/exceptions.md

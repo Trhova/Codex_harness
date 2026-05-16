@@ -1,0 +1,121 @@
+# Baseline raw transcript for ops_replicates__ci_deploy_rollout
+
+$ find . -type f
+./README.md
+./docs/deploy_runbook.md
+./logs/actions_2026-05-12.txt
+./logs/kubectl_rollout_timeout.txt
+./scenario.json
+./scripts/deploy.sh
+./scripts/smoke_test.sh
+
+$ rg -n 'deploy.image|rollout status|readiness probe|smoke_test|GITHUB_SHA' .
+README.md:9:- `scripts/smoke_test.sh` checks health and version endpoints.
+docs/deploy_runbook.md:7:scripts/smoke_test.sh staging
+docs/deploy_runbook.md:14:- If `kubectl rollout status` times out, inspect `kubectl -n <namespace> describe pod -l app=search-api`.
+docs/deploy_runbook.md:15:- If the smoke test fails on `/version`, confirm the deployment annotation `deploy.image` matches the Actions build output.
+docs/deploy_runbook.md:16:- If readiness probes fail after a config-only change, compare `configs/staging.env` and `configs/production.env` before changing the manifest.
+docs/deploy_runbook.md:22:kubectl -n search-prod rollout status deployment/search-api --timeout=300s
+docs/deploy_runbook.md:23:scripts/smoke_test.sh production
+logs/kubectl_rollout_timeout.txt:3:pod/search-api-5ccdb9f758-q9x9f readiness probe failed: HTTP probe failed with statuscode: 503
+logs/kubectl_rollout_timeout.txt:4:deployment.apps/search-api annotation deploy.image=registry.internal.example.com/search-api:02e8bad
+scenario.json:2:  "search_pattern": "deploy.image|rollout status|readiness probe|smoke_test|GITHUB_SHA"
+scripts/deploy.sh:22:kubectl -n "${NAMESPACE}" rollout status "deployment/${DEPLOYMENT}" --timeout="${ROLLOUT_TIMEOUT}"
+scripts/deploy.sh:23:kubectl -n "${NAMESPACE}" annotate deployment "${DEPLOYMENT}" "deploy.image=${image}" --overwrite
+scripts/smoke_test.sh:4:environment="${1:?usage: smoke_test.sh <environment>}"
+
+$ broad context scan: full text files
+--- README.md ---
+# CI Deploy Rollout
+
+This fixture models a GitHub Actions pipeline that builds an image, publishes it to a registry, deploys it to Kubernetes, and validates the rollout with smoke tests.
+
+Key files:
+
+- `.github/workflows/deploy.yml` defines build, deploy, and smoke-test jobs.
+- `scripts/deploy.sh` renders the deployment image and waits for rollout.
+- `scripts/smoke_test.sh` checks health and version endpoints.
+- `configs/staging.env` and `configs/production.env` set cluster namespace, replica, and host values.
+- `docs/deploy_runbook.md` covers rollback and failed rollout triage.
+- `logs/` contains example GitHub Actions and Kubernetes output.
+
+--- docs/deploy_runbook.md ---
+# Deploy Runbook
+
+Normal release path:
+
+```bash
+scripts/deploy.sh staging registry.internal.example.com/search-api:<sha>
+scripts/smoke_test.sh staging
+```
+
+Production deploys use the same scripts with `production`. The GitHub Actions workflow sets the image from the commit SHA and passes the environment input to `scripts/deploy.sh`.
+
+Failed rollout triage:
+
+- If `kubectl rollout status` times out, inspect `kubectl -n <namespace> describe pod -l app=search-api`.
+- If the smoke test fails on `/version`, confirm the deployment annotation `deploy.image` matches the Actions build output.
+- If readiness probes fail after a config-only change, compare `configs/staging.env` and `configs/production.env` before changing the manifest.
+
+Rollback:
+
+```bash
+kubectl -n search-prod rollout undo deployment/search-api
+kubectl -n search-prod rollout status deployment/search-api --timeout=300s
+scripts/smoke_test.sh production
+```
+
+--- logs/actions_2026-05-12.txt ---
+2026-05-12T10:04:11Z build image=registry.internal.example.com/search-api:7dd51d729ab1e4d4a1c97a4a5a74fb09bdb7b211
+2026-05-12T10:05:38Z docker push complete digest=sha256:8a39d
+2026-05-12T10:06:02Z deploy environment=staging namespace=search-staging
+2026-05-12T10:06:44Z deployment "search-api" successfully rolled out
+2026-05-12T10:06:50Z smoke tests passed for staging
+
+--- logs/kubectl_rollout_timeout.txt ---
+Waiting for deployment "search-api" rollout to finish: 1 old replicas are pending termination...
+error: timed out waiting for the condition
+pod/search-api-5ccdb9f758-q9x9f readiness probe failed: HTTP probe failed with statuscode: 503
+deployment.apps/search-api annotation deploy.image=registry.internal.example.com/search-api:02e8bad
+
+--- scenario.json ---
+{
+  "search_pattern": "deploy.image|rollout status|readiness probe|smoke_test|GITHUB_SHA"
+}
+
+--- scripts/deploy.sh ---
+#!/usr/bin/env bash
+set -euo pipefail
+
+environment="${1:?usage: deploy.sh <environment> <image>}"
+image="${2:?usage: deploy.sh <environment> <image>}"
+
+config="configs/${environment}.env"
+if [[ ! -f "${config}" ]]; then
+  echo "unknown environment ${environment}" >&2
+  exit 2
+fi
+
+source "${config}"
+
+tmp_manifest="$(mktemp)"
+trap 'rm -f "${tmp_manifest}"' EXIT
+
+sed "s|IMAGE_PLACEHOLDER|${image}|g" k8s/deployment.yaml > "${tmp_manifest}"
+
+kubectl -n "${NAMESPACE}" apply -f "${tmp_manifest}"
+kubectl -n "${NAMESPACE}" scale deployment "${DEPLOYMENT}" --replicas="${REPLICAS}"
+kubectl -n "${NAMESPACE}" rollout status "deployment/${DEPLOYMENT}" --timeout="${ROLLOUT_TIMEOUT}"
+kubectl -n "${NAMESPACE}" annotate deployment "${DEPLOYMENT}" "deploy.image=${image}" --overwrite
+
+--- scripts/smoke_test.sh ---
+#!/usr/bin/env bash
+set -euo pipefail
+
+environment="${1:?usage: smoke_test.sh <environment>}"
+source "configs/${environment}.env"
+
+curl --fail --silent --show-error "${PUBLIC_HOST}/healthz"
+curl --fail --silent --show-error "${PUBLIC_HOST}/version" | grep -E '"git_sha":"[0-9a-f]{40}"'
+
+echo "smoke tests passed for ${environment}"

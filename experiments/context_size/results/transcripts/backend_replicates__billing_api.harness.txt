@@ -1,0 +1,60 @@
+# RTK-style summaries for backend_replicates__billing_api
+
+$ rtk find . -type f
+dirs: README.md/ 1, docs/ 1, scenario.json/ 1, src/ 6, tests/ 1
+ext: .json(1), .md(2), .py(7)
+sample: README.md, docs/operations.md, scenario.json, src/__init__.py, src/auth.py, src/cache.py, src/config.py, src/repository.py
+
+$ rtk grep 'duplicate-adjustment-conflict|DuplicateAdjustment|create_adjustment|test_duplicate_adjustment_returns_conflict' .
+README.md: 1 shown
+  L7: Primary task anchor: `duplicate-adjustment-conflict`.
+docs/operations.md: 1 shown
+  L10: Operational marker: `duplicate-adjustment-conflict`.
+scenario.json: 1 shown
+  L2: "search_pattern": "duplicate-adjustment-conflict|DuplicateAdjustment|create_adjustment|test_duplicate_adjustment_returns
+src/repository.py: 3 shown
+  L14: class DuplicateAdjustment(Exception):
+  L16: super().__init__("duplicate-adjustment-conflict")
+  L28: raise DuplicateAdjustment(self._by_id[self._dedupe[dedupe_key]])
+src/routes.py: 3 shown
+  L4: from .repository import Adjustment, AdjustmentRepository, DuplicateAdjustment
+  L23: def create_adjustment(self, request: dict[str, object]) -> dict[str, object]:
+  L41: except DuplicateAdjustment as exc:
+tests/test_adjustments.py: 3 shown
+  L19: def test_duplicate_adjustment_returns_conflict() -> None:
+  L21: first = routes.create_adjustment(request({"invoice_id": "inv-101", "reason": "tax", "amount_cents": -1200}))
+  L22: second = routes.create_adjustment(request({"invoice_id": "inv-101", "reason": "TAX", "amount_cents": -1200}))
+
+# Graphify-style report for backend_replicates__billing_api
+
+Files: 10
+Extensions: .json:1, .md:2, .py:7
+
+## Communities
+- docs: 2 files (README.md, docs/operations.md)
+- runtime: 6 files (src/__init__.py, src/auth.py, src/cache.py, src/config.py, src/repository.py)
+- scenario.json: 1 files (scenario.json)
+- tests: 1 files (tests/test_adjustments.py)
+
+## Key Symbols
+- README.md: Billing API Replica
+- docs/operations.md: Billing API Operations
+- src/auth.py: AuthorizationError, authorize
+- src/cache.py: Cache, __init__, get, set, invalidate_invoice
+- src/config.py: Settings, load_settings
+- src/repository.py: Adjustment, DuplicateAdjustment, AdjustmentRepository, __init__, __init__, create, list_for_invoice
+- src/routes.py: serialize_adjustment, BillingRoutes, __init__, create_adjustment, list_adjustments
+- tests/test_adjustments.py: request, test_duplicate_adjustment_returns_conflict
+
+## Imports and Entrypoints
+- src/auth.py: from .config import Settings
+- src/cache.py: from time import monotonic
+- src/config.py: from dataclasses import dataclass
+- src/repository.py: from dataclasses import dataclass; from uuid import uuid4
+- src/routes.py: from .auth import AuthorizationError, authorize; from .cache import Cache; from .config import Settings; from .repository import Adjustment, AdjustmentRepository, DuplicateAdjustment
+- tests/test_adjustments.py: from billing_api.src.cache import Cache; from billing_api.src.config import Settings; from billing_api.src.repository import AdjustmentRepository; from billing_api.src.routes import BillingRoutes
+
+## Suggested Next Reads
+- README.md
+- docs/operations.md
+- scenario.json

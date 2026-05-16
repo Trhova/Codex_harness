@@ -1,0 +1,52 @@
+# RTK-style summaries for docs_replicates__onboarding_handbook
+
+$ rtk find . -type f
+dirs: README.md/ 1, docs/ 3, scenario.json/ 1, scripts/ 1
+ext: .json(1), .md(4), .py(1)
+sample: README.md, docs/release_checklist.md, docs/start_here.md, docs/troubleshooting.md, scenario.json, scripts/validate_handbook.py
+
+$ rtk grep 'onboarding|setup|approval|workflow|troubleshooting|checklist' .
+README.md: 2 shown
+  L1: # Onboarding Handbook Fixture
+  L3: This fixture represents a documentation-heavy repository for onboarding new users to a technical platform. It has guides
+docs/release_checklist.md: 3 shown
+  L1: # Release Checklist
+  L5: - confirm the setup instructions still match the current workflow
+  L6: - verify approval names and links
+docs/start_here.md: 3 shown
+  L3: The onboarding workflow begins with account setup, local tool installation, and a short approval checklist. New users sh
+  L10: 4. Complete the approval checklist.
+  L11: 5. Save troubleshooting notes in the team knowledge base.
+docs/troubleshooting.md: 3 shown
+  L1: # Troubleshooting
+  L3: Common onboarding problems include missing environment variables, expired approval links, stale cached credentials, and
+  L5: If the validation script fails, read the exact message first. Do not rerun every setup command blindly; update only the
+scenario.json: 1 shown
+  L2: "search_pattern": "onboarding|setup|approval|workflow|troubleshooting|checklist"
+scripts/validate_handbook.py: 1 shown
+  L4: REQUIRED_TERMS = ["onboarding", "setup", "approval", "workflow", "troubleshooting"]
+
+# Graphify-style report for docs_replicates__onboarding_handbook
+
+Files: 6
+Extensions: .json:1, .md:4, .py:1
+
+## Communities
+- automation: 1 files (scripts/validate_handbook.py)
+- docs: 4 files (README.md, docs/release_checklist.md, docs/start_here.md, docs/troubleshooting.md)
+- scenario.json: 1 files (scenario.json)
+
+## Key Symbols
+- README.md: Onboarding Handbook Fixture
+- docs/release_checklist.md: Release Checklist
+- docs/start_here.md: Start Here, Steps
+- docs/troubleshooting.md: Troubleshooting
+- scripts/validate_handbook.py: read_docs, missing_terms
+
+## Imports and Entrypoints
+- scripts/validate_handbook.py: from pathlib import Path
+
+## Suggested Next Reads
+- README.md
+- docs/release_checklist.md
+- docs/start_here.md

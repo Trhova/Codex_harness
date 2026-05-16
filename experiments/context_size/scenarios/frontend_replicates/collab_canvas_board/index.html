@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Canvas Board</title>
+    <link rel="stylesheet" href="./styles/board.css" />
+  </head>
+  <body>
+    <main class="board-shell">
+      <nav id="tool-rail" class="tool-rail" aria-label="Drawing tools"></nav>
+      <section class="canvas-stage">
+        <canvas id="board-canvas" width="1200" height="760"></canvas>
+      </section>
+      <aside id="comments-panel" class="comments-panel" aria-label="Comments"></aside>
+    </main>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,4 @@
+2026-05-12T14:03:18 cuda visible devices=0
+2026-05-12T16:28:44 epoch=3 val_loss=0.218 checkpoint=/scratch/bioinf/cohort_042/checkpoints/epoch_003.pt
+2026-05-12T17:55:10 received preemption signal; writing final checkpoint
+2026-05-12T17:55:49 checkpoint saved before exit

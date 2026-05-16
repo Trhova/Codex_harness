@@ -1,0 +1,60 @@
+# RTK-style summaries for backend_replicates__warehouse_etl
+
+$ rtk find . -type f
+dirs: README.md/ 1, docs/ 1, scenario.json/ 1, src/ 8, tests/ 1
+ext: .json(1), .md(2), .py(9)
+sample: README.md, docs/pipeline.md, scenario.json, src/__init__.py, src/checkpoint.py, src/config.py, src/extract.py, src/load.py
+
+$ rtk grep 'refund-net-revenue-guard|daily_revenue_facts|normalize_amount|test_refunds_reduce_net_revenue' .
+README.md: 1 shown
+  L7: Primary task anchor: `refund-net-revenue-guard`.
+docs/pipeline.md: 1 shown
+  L7: `refund-net-revenue-guard` appears in the transformer and test so a targeted
+scenario.json: 1 shown
+  L2: "search_pattern": "refund-net-revenue-guard|daily_revenue_facts|normalize_amount|test_refunds_reduce_net_revenue"
+src/pipeline.py: 2 shown
+  L5: from .transform import daily_revenue_facts
+  L25: facts = daily_revenue_facts(valid_rows)
+src/transform.py: 3 shown
+  L4: def normalize_amount(row: dict[str, object]) -> int:
+  L11: def daily_revenue_facts(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+  L18: amount = normalize_amount(row)
+tests/test_revenue.py: 3 shown
+  L1: from warehouse_etl.src.transform import daily_revenue_facts
+  L4: def test_refunds_reduce_net_revenue() -> None:
+  L10: facts = daily_revenue_facts(rows)
+
+# Graphify-style report for backend_replicates__warehouse_etl
+
+Files: 12
+Extensions: .json:1, .md:2, .py:9
+
+## Communities
+- docs: 2 files (README.md, docs/pipeline.md)
+- runtime: 8 files (src/__init__.py, src/checkpoint.py, src/config.py, src/extract.py, src/load.py)
+- scenario.json: 1 files (scenario.json)
+- tests: 1 files (tests/test_revenue.py)
+
+## Key Symbols
+- README.md: Warehouse ETL Replica
+- docs/pipeline.md: Warehouse Pipeline Notes
+- src/checkpoint.py: Checkpoint, CheckpointStore, __init__, save, latest
+- src/config.py: PipelineConfig
+- src/extract.py: ObjectStore, extract_order_rows, __init__, read_json_rows
+- src/load.py: WarehouseClient, load_daily_facts, __init__, upsert_fact
+- src/pipeline.py: DailyRevenuePipeline, __init__, run
+- src/transform.py: normalize_amount, daily_revenue_facts
+- src/validate.py: ValidationError, validate_row
+- tests/test_revenue.py: test_refunds_reduce_net_revenue
+
+## Imports and Entrypoints
+- src/checkpoint.py: from dataclasses import dataclass
+- src/config.py: from dataclasses import dataclass
+- src/pipeline.py: from .checkpoint import Checkpoint, CheckpointStore; from .config import PipelineConfig; from .extract import ObjectStore, extract_order_rows; from .load import WarehouseClient, load_daily_facts; from .transform import daily_revenue_facts
+- src/transform.py: from collections import defaultdict
+- tests/test_revenue.py: from warehouse_etl.src.transform import daily_revenue_facts
+
+## Suggested Next Reads
+- README.md
+- docs/pipeline.md
+- scenario.json

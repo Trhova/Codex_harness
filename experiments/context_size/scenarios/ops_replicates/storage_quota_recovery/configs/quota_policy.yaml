@@ -1,0 +1,17 @@
+project: bioinf-prod
+filesystem: lustre-scratch
+soft_limit_tb: 180
+hard_limit_tb: 200
+warning_threshold_percent: 85
+cleanup_threshold_percent: 92
+owners:
+  primary: hpc-ops@example.com
+  data_steward: bioinf-data@example.com
+paths:
+  scratch_root: /scratch/bioinf
+  checkpoint_glob: /scratch/bioinf/*/checkpoints
+  archive_bucket: s3://hpc-cold-archive/bioinf
+retention:
+  checkpoints_days: 14
+  temporary_features_days: 7
+  logs_days: 60

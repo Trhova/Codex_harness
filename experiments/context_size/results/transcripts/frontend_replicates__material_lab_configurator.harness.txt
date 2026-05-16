@@ -1,0 +1,60 @@
+# RTK-style summaries for frontend_replicates__material_lab_configurator
+
+$ rtk find . -type f
+dirs: README.md/ 1, docs/ 1, index.html/ 1, package.json/ 1, scenario.json/ 1, src/ 4, styles/ 1
+ext: .css(1), .html(1), .js(4), .json(2), .md(2)
+sample: README.md, docs/task.md, index.html, package.json, scenario.json, src/app.js, src/controls.js, src/presets.js
+
+$ rtk grep 'materialPresets|applyPreset|environmentShimmer|renderPreview' .
+README.md: 1 shown
+  L11: `materialPresets|applyPreset|environmentShimmer|renderPreview`
+docs/task.md: 2 shown
+  L7: - `src/preview.js` determines how `environmentShimmer`, roughness, and clearcoat appear.
+  L9: Expected edit target for the graphite task is `materialPresets` only.
+index.html: 1 shown
+  L20: <label><input name="environmentShimmer" type="checkbox" /> Environment shimmer</label>
+scenario.json: 1 shown
+  L2: "search_pattern": "materialPresets|applyPreset|environmentShimmer|renderPreview"
+src/app.js: 3 shown
+  L1: import { materialPresets } from "./presets.js";
+  L2: import { renderPreview } from "./preview.js";
+  L10: selectedPreset: materialPresets[0].id,
+src/controls.js: 2 shown
+  L16: form.elements.environmentShimmer.checked = material.environmentShimmer;
+  L22: environmentShimmer: form.elements.environmentShimmer.checked,
+src/presets.js: 3 shown
+  L1: export const materialPresets = [
+  L10: environmentShimmer: true,
+  L21: environmentShimmer: true,
+src/preview.js: 2 shown
+  L1: export function renderPreview(canvas, material) {
+  L26: if (material.environmentShimmer) {
+
+# Graphify-style report for frontend_replicates__material_lab_configurator
+
+Files: 10
+Extensions: .css:1, .html:1, .js:4, .json:2, .md:2
+
+## Communities
+- docs: 2 files (README.md, docs/task.md)
+- frontend-assets: 1 files (styles/configurator.css)
+- index.html: 1 files (index.html)
+- package.json: 1 files (package.json)
+- runtime: 4 files (src/app.js, src/controls.js, src/presets.js, src/preview.js)
+- scenario.json: 1 files (scenario.json)
+
+## Key Symbols
+- README.md: Material Lab Configurator Fixture
+- docs/task.md: Task Notes
+- src/app.js: applyPreset, updateMaterial, canvas, presetList, form, state, preset
+- src/controls.js: renderPresetButtons, bindMaterialForm, button
+- src/presets.js: materialPresets
+- src/preview.js: renderPreview, ctx, width, height, centerX, centerY, radius, background
+
+## Imports and Entrypoints
+- src/app.js: import { materialPresets } from "./presets.js";; import { renderPreview } from "./preview.js";; import { bindMaterialForm, renderPresetButtons } from "./controls.js";
+
+## Suggested Next Reads
+- README.md
+- docs/task.md
+- index.html

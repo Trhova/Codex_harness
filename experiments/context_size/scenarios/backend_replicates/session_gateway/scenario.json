@@ -1,0 +1,3 @@
+{
+  "search_pattern": "token-rotation-cache-invalidation|rotate_signing_key|invalidate_key_id|test_rotation_invalidates_sessions_for_old_key"
+}

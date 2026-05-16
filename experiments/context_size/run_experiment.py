@@ -4,7 +4,6 @@ from __future__ import annotations
 import ast
 import csv
 import json
-import math
 import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -17,11 +16,12 @@ RESULTS = ROOT / "results"
 TRANSCRIPTS = RESULTS / "transcripts"
 
 TEXT_SUFFIXES = {".md", ".py", ".sh", ".js", ".json", ".html", ".css", ".txt", ".sbatch"}
-SEARCH_PATTERNS = {
-    "python_service": re.compile(r"route|handler|database|cache|test|config", re.I),
-    "hpc_jobs": re.compile(r"sbatch|module|queue|gpu|memory|checkpoint|array", re.I),
-    "three_d_city": re.compile(r"scene|camera|building|traffic|render|geometry|control", re.I),
+DEFAULT_SEARCH_PATTERNS = {
+    "python_service": "route|handler|database|cache|test|config",
+    "hpc_jobs": "sbatch|module|queue|gpu|memory|checkpoint|array",
+    "three_d_city": "scene|camera|building|traffic|render|geometry|control",
 }
+TOKENIZER = "o200k_base"
 
 
 @dataclass(frozen=True)
@@ -31,12 +31,51 @@ class TextFile:
     text: str
 
 
-def estimate_tokens(text: str) -> int:
-    return math.ceil(len(text) / 4)
+def count_tokens(text: str) -> int:
+    try:
+        import tiktoken
+    except ImportError as exc:
+        raise SystemExit(
+            "This experiment requires tiktoken for real tokenizer counts. "
+            "Install it with: python3 -m pip install tiktoken"
+        ) from exc
+
+    encoding = tiktoken.get_encoding(TOKENIZER)
+    return len(encoding.encode(text))
 
 
 def scenario_dirs() -> list[Path]:
-    return sorted(path for path in SCENARIOS.iterdir() if path.is_dir())
+    scenarios: list[Path] = []
+    for path in sorted([SCENARIOS / name for name in DEFAULT_SEARCH_PATTERNS] + list(SCENARIOS.rglob("scenario.json"))):
+        if path.name == "scenario.json":
+            path = path.parent
+        if not path.is_dir():
+            continue
+        if path not in scenarios and read_text_files(path):
+            scenarios.append(path)
+    return scenarios
+
+
+def scenario_id(scenario: Path) -> str:
+    return scenario.relative_to(SCENARIOS).as_posix().replace("/", "__")
+
+
+def scenario_pattern(scenario: Path) -> re.Pattern[str]:
+    metadata_path = scenario / "scenario.json"
+    if metadata_path.exists():
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        pattern = metadata.get("search_pattern")
+        if not pattern:
+            raise ValueError(f"{metadata_path} must define search_pattern")
+        return re.compile(pattern, re.I)
+
+    pattern = DEFAULT_SEARCH_PATTERNS.get(scenario.name)
+    if not pattern:
+        raise ValueError(
+            f"{scenario} must include scenario.json with a search_pattern "
+            "so replicate measurements are explicit"
+        )
+    return re.compile(pattern, re.I)
 
 
 def read_text_files(scenario: Path) -> list[TextFile]:
@@ -50,9 +89,9 @@ def read_text_files(scenario: Path) -> list[TextFile]:
 
 
 def baseline_transcript(scenario: Path, files: list[TextFile]) -> str:
-    pattern = SEARCH_PATTERNS[scenario.name]
+    pattern = scenario_pattern(scenario)
     lines: list[str] = [
-        f"# Baseline raw transcript for {scenario.name}",
+        f"# Baseline raw transcript for {scenario_id(scenario)}",
         "",
         "$ find . -type f",
     ]
@@ -139,7 +178,7 @@ def graphify_style_report(scenario: Path, files: list[TextFile]) -> str:
             imports_by_file.append((file.relpath, imports))
 
     lines: list[str] = [
-        f"# Graphify-style report for {scenario.name}",
+        f"# Graphify-style report for {scenario_id(scenario)}",
         "",
         f"Files: {len(files)}",
         "Extensions: " + ", ".join(f"{ext}:{count}" for ext, count in sorted(ext_counts.items())),
@@ -165,7 +204,7 @@ def graphify_style_report(scenario: Path, files: list[TextFile]) -> str:
 
 
 def rtk_style_summary(scenario: Path, files: list[TextFile]) -> str:
-    pattern = SEARCH_PATTERNS[scenario.name]
+    pattern = scenario_pattern(scenario)
     dirs = Counter(file.relpath.split("/", 1)[0] for file in files)
     exts = Counter(file.path.suffix or "none" for file in files)
     hits_by_file: dict[str, list[str]] = defaultdict(list)
@@ -175,7 +214,7 @@ def rtk_style_summary(scenario: Path, files: list[TextFile]) -> str:
                 hits_by_file[file.relpath].append(f"L{number}: {line.strip()[:120].rstrip()}")
 
     lines: list[str] = [
-        f"# RTK-style summaries for {scenario.name}",
+        f"# RTK-style summaries for {scenario_id(scenario)}",
         "",
         "$ rtk find . -type f",
         "dirs: " + ", ".join(f"{name}/ {count}" for name, count in sorted(dirs.items())),
@@ -208,8 +247,8 @@ def write_svg(rows: list[dict[str, object]], path: Path) -> None:
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
         '<rect width="100%" height="100%" fill="#ffffff"/>',
-        '<text x="24" y="34" font-family="Arial, sans-serif" font-size="20" font-weight="700">Token proxy by workflow</text>',
-        '<text x="24" y="58" font-family="Arial, sans-serif" font-size="12" fill="#555">estimated tokens = ceil(characters / 4)</text>',
+        '<text x="24" y="34" font-family="Arial, sans-serif" font-size="20" font-weight="700">Measured transcript tokens by workflow</text>',
+        f'<text x="24" y="58" font-family="Arial, sans-serif" font-size="12" fill="#555">tokenizer: {TOKENIZER} via tiktoken</text>',
         f'<line x1="{margin_left}" y1="{height - margin_bottom}" x2="{width - 40}" y2="{height - margin_bottom}" stroke="#333"/>',
         f'<line x1="{margin_left}" y1="80" x2="{margin_left}" y2="{height - margin_bottom}" stroke="#333"/>',
     ]
@@ -257,11 +296,11 @@ def write_png_if_possible(rows: list[dict[str, object]], path: Path) -> bool:
     fig, ax = plt.subplots(figsize=(8.5, 4.2))
     ax.bar([pos - width / 2 for pos in positions], baseline, width, label="without harness", color="#4c78a8")
     ax.bar([pos + width / 2 for pos in positions], harness, width, label="with harness", color="#f58518")
-    ax.set_title("Token proxy by workflow")
-    ax.set_ylabel("estimated tokens")
+    ax.set_title("Measured transcript tokens by workflow")
+    ax.set_ylabel("tokens")
     ax.set_xticks(list(positions), labels)
     ax.legend()
-    ax.text(0.01, -0.18, "estimated tokens = ceil(characters / 4)", transform=ax.transAxes, fontsize=9)
+    ax.text(0.01, -0.18, f"tokenizer: {TOKENIZER} via tiktoken", transform=ax.transAxes, fontsize=9)
     fig.tight_layout()
     fig.savefig(path, dpi=160)
     plt.close(fig)
@@ -277,14 +316,16 @@ def run() -> list[dict[str, object]]:
         files = read_text_files(scenario)
         baseline = baseline_transcript(scenario, files)
         harness = harness_transcript(scenario, files)
-        (TRANSCRIPTS / f"{scenario.name}.baseline.txt").write_text(baseline, encoding="utf-8")
-        (TRANSCRIPTS / f"{scenario.name}.harness.txt").write_text(harness, encoding="utf-8")
+        name = scenario_id(scenario)
+        (TRANSCRIPTS / f"{name}.baseline.txt").write_text(baseline, encoding="utf-8")
+        (TRANSCRIPTS / f"{name}.harness.txt").write_text(harness, encoding="utf-8")
 
-        baseline_tokens = estimate_tokens(baseline)
-        harness_tokens = estimate_tokens(harness)
+        baseline_tokens = count_tokens(baseline)
+        harness_tokens = count_tokens(harness)
         rows.append(
             {
-                "scenario": scenario.name,
+                "scenario": name,
+                "tokenizer": TOKENIZER,
                 "files": len(files),
                 "baseline_chars": len(baseline),
                 "harness_chars": len(harness),
@@ -307,6 +348,7 @@ def run() -> list[dict[str, object]]:
 
 def main() -> None:
     rows = run()
+    print(f"tokenizer={TOKENIZER}")
     print("scenario,baseline_tokens,harness_tokens,token_delta_percent")
     for row in rows:
         print(f"{row['scenario']},{row['baseline_tokens']},{row['harness_tokens']},{row['token_delta_percent']}")

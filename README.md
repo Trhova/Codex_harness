@@ -154,6 +154,37 @@ Then ask Codex to start from:
 Read graphify-out/GRAPH_REPORT.md first, then inspect only the files needed for this change.
 ```
 
+## Measured Context Reduction
+
+We tested the harness idea with a reproducible experiment in [experiments/context_size](experiments/context_size/README.md). Four independent work streams created fixture codebases across frontend/3D, backend, ops/HPC, and docs-heavy tasks. The experiment compares two transcripts for each fixture:
+
+| Workflow | What it simulates |
+| --- | --- |
+| Without harness | Raw recursive file listing, broad text search, and full text scans. |
+| With harness | RTK-style summaries plus a Graphify-style structural report before opening raw files. |
+
+The experiment counts actual transcript tokens with `tiktoken` using the `o200k_base` tokenizer. It does not use private Codex telemetry and it does not measure billing tokens, accuracy, or elapsed time. It measures the amount of transcript text a Codex-like model would need to read for these controlled context-gathering workflows.
+
+Across 14 fixtures, the harness-style transcript reduced measured tokens from 27,541 to 10,254 total tokens: **62.8% fewer measured transcript tokens overall**. The median per-fixture reduction was **57.3%**, with a range from **23.6%** on documentation-heavy fixtures to **78.5%** on the largest frontend/3D fixture.
+
+| Fixture family | Examples | Reduction range |
+| --- | --- | ---: |
+| Frontend / 3D | city dashboard, material configurator, canvas board | 70.6-78.5% fewer |
+| Backend / data | billing API, session gateway, ETL pipeline | 56.1-64.6% fewer |
+| Ops / HPC | CI deploy, batch jobs, quota recovery | 53.6-62.9% fewer |
+| Docs-heavy | onboarding handbook, policy process | 23.6-29.3% fewer |
+| Original smoke fixtures | Python service, HPC jobs, simple 3D city | 48.5-67.3% fewer |
+
+Reproduce it:
+
+```bash
+cd /home/<user>/codex_harness
+python3 -m pip install -r experiments/context_size/requirements.txt
+python3 experiments/context_size/run_experiment.py
+```
+
+The current bar plot is generated at [experiments/context_size/results/token_proxy_bar.svg](experiments/context_size/results/token_proxy_bar.svg), and the full results are in [summary.csv](experiments/context_size/results/summary.csv). Treat this as evidence that the workflow can reduce context size, not as a universal guarantee. Real Codex savings depend on the task, prompt, repo size, and whether the agent still needs raw logs or full files.
+
 ## Useful Commands
 
 ### Install Harness

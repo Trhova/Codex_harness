@@ -1,0 +1,403 @@
+# Baseline raw transcript for frontend_replicates__collab_canvas_board
+
+$ find . -type f
+./README.md
+./docs/task.md
+./index.html
+./package.json
+./scenario.json
+./src/app.js
+./src/comments.js
+./src/data.js
+./src/renderer.js
+./src/selection.js
+./src/tools.js
+./styles/board.css
+
+$ rg -n 'boardLayers|locked|hitTestLayer|renderLayerStack' .
+README.md:7:- Ask the agent to add a locked `handoff annotations` layer that renders above sketches but below comments, and make sure selection ignores locked layers.
+README.md:11:`boardLayers|locked|hitTestLayer|renderLayerStack`
+docs/task.md:5:- `src/data.js` owns layer ordering and the `locked` flag.
+docs/task.md:6:- `src/renderer.js` draws layers in array order and dims locked shapes.
+docs/task.md:7:- `src/selection.js` already skips locked layers during hit testing.
+docs/task.md:9:Expected edit target for the handoff annotations task is mostly `boardLayers`.
+scenario.json:2:  "search_pattern": "boardLayers|locked|hitTestLayer|renderLayerStack"
+src/app.js:1:import { boardLayers, boardComments } from "./data.js";
+src/app.js:2:import { renderLayerStack } from "./renderer.js";
+src/app.js:4:import { hitTestLayer } from "./selection.js";
+src/app.js:16:createToolRail(toolRail, state, () => renderLayerStack(canvas, boardLayers, state.selectedShapeId));
+src/app.js:18:renderLayerStack(canvas, boardLayers, state.selectedShapeId);
+src/app.js:26:  state.selectedShapeId = hitTestLayer(boardLayers, point)?.id ?? null;
+src/app.js:27:  renderLayerStack(canvas, boardLayers, state.selectedShapeId);
+src/data.js:1:export const boardLayers = [
+src/data.js:5:    locked: false,
+src/data.js:15:    locked: false,
+src/data.js:25:    locked: false,
+src/renderer.js:1:export function renderLayerStack(canvas, boardLayers, selectedShapeId) {
+src/renderer.js:6:  boardLayers.forEach((layer) => {
+src/renderer.js:8:      drawShape(ctx, shape, shape.id === selectedShapeId, layer.locked);
+src/renderer.js:32:function drawShape(ctx, shape, selected, locked) {
+src/renderer.js:34:  ctx.globalAlpha = locked ? 0.48 : 1;
+src/selection.js:1:export function hitTestLayer(boardLayers, point) {
+src/selection.js:2:  for (let layerIndex = boardLayers.length - 1; layerIndex >= 0; layerIndex -= 1) {
+src/selection.js:3:    const layer = boardLayers[layerIndex];
+src/selection.js:4:    if (layer.locked) {
+
+$ broad context scan: full text files
+--- README.md ---
+# Collaborative Canvas Board Fixture
+
+This fixture represents a lightweight whiteboard UI with tool state, drawing commands, comments, and layer rendering.
+
+Primary comparison task:
+
+- Ask the agent to add a locked `handoff annotations` layer that renders above sketches but below comments, and make sure selection ignores locked layers.
+
+Good transcript search pattern:
+
+`boardLayers|locked|hitTestLayer|renderLayerStack`
+
+--- docs/task.md ---
+# Task Notes
+
+Useful areas for agent comparison:
+
+- `src/data.js` owns layer ordering and the `locked` flag.
+- `src/renderer.js` draws layers in array order and dims locked shapes.
+- `src/selection.js` already skips locked layers during hit testing.
+
+Expected edit target for the handoff annotations task is mostly `boardLayers`.
+
+--- index.html ---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Canvas Board</title>
+    <link rel="stylesheet" href="./styles/board.css" />
+  </head>
+  <body>
+    <main class="board-shell">
+      <nav id="tool-rail" class="tool-rail" aria-label="Drawing tools"></nav>
+      <section class="canvas-stage">
+        <canvas id="board-canvas" width="1200" height="760"></canvas>
+      </section>
+      <aside id="comments-panel" class="comments-panel" aria-label="Comments"></aside>
+    </main>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
+
+--- package.json ---
+{
+  "name": "collab-canvas-board-fixture",
+  "private": true,
+  "type": "module"
+}
+
+--- scenario.json ---
+{
+  "search_pattern": "boardLayers|locked|hitTestLayer|renderLayerStack"
+}
+
+--- src/app.js ---
+import { boardLayers, boardComments } from "./data.js";
+import { renderLayerStack } from "./renderer.js";
+import { createToolRail } from "./tools.js";
+import { hitTestLayer } from "./selection.js";
+import { renderComments } from "./comments.js";
+
+const canvas = document.querySelector("#board-canvas");
+const toolRail = document.querySelector("#tool-rail");
+const commentsPanel = document.querySelector("#comments-panel");
+
+const state = {
+  tool: "select",
+  selectedShapeId: null,
+};
+
+createToolRail(toolRail, state, () => renderLayerStack(canvas, boardLayers, state.selectedShapeId));
+renderComments(commentsPanel, boardComments);
+renderLayerStack(canvas, boardLayers, state.selectedShapeId);
+
+canvas.addEventListener("pointerdown", (event) => {
+  const rect = canvas.getBoundingClientRect();
+  const point = {
+    x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+    y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+  };
+  state.selectedShapeId = hitTestLayer(boardLayers, point)?.id ?? null;
+  renderLayerStack(canvas, boardLayers, state.selectedShapeId);
+});
+
+--- src/comments.js ---
+export function renderComments(host, comments) {
+  host.innerHTML = `
+    <h1>Comments</h1>
+    ${comments
+      .map(
+        (comment) => `
+          <article>
+            <strong>${comment.author}</strong>
+            <p>${comment.text}</p>
+            <span>${comment.shapeId}</span>
+          </article>
+        `
+      )
+      .join("")}
+  `;
+}
+
+--- src/data.js ---
+export const boardLayers = [
+  {
+    id: "wireframes",
+    label: "Wireframes",
+    locked: false,
+    role: "sketch",
+    shapes: [
+      { id: "hero-frame", type: "rect", x: 92, y: 74, width: 380, height: 210, color: "#6a7cff" },
+      { id: "cta-pill", type: "rect", x: 130, y: 238, width: 148, height: 34, color: "#22a699" },
+    ],
+  },
+  {
+    id: "flows",
+    label: "User flows",
+    locked: false,
+    role: "sketch",
+    shapes: [
+      { id: "flow-line", type: "line", x: 520, y: 180, x2: 760, y2: 280, color: "#ef7b45" },
+      { id: "decision-node", type: "circle", x: 804, y: 302, radius: 42, color: "#ef7b45" },
+    ],
+  },
+  {
+    id: "review-comments",
+    label: "Review comments",
+    locked: false,
+    role: "comment",
+    shapes: [
+      { id: "comment-pin-a", type: "circle", x: 430, y: 92, radius: 16, color: "#f7c948" },
+      { id: "comment-pin-b", type: "circle", x: 830, y: 330, radius: 16, color: "#f7c948" },
+    ],
+  },
+];
+
+export const boardComments = [
+  { id: "a", author: "Mira", text: "Hero frame needs a denser information state.", shapeId: "comment-pin-a" },
+  { id: "b", author: "Jon", text: "Decision node should link back to onboarding.", shapeId: "comment-pin-b" },
+];
+
+--- src/renderer.js ---
+export function renderLayerStack(canvas, boardLayers, selectedShapeId) {
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBackground(ctx, canvas);
+
+  boardLayers.forEach((layer) => {
+    layer.shapes.forEach((shape) => {
+      drawShape(ctx, shape, shape.id === selectedShapeId, layer.locked);
+    });
+  });
+}
+
+function drawBackground(ctx, canvas) {
+  ctx.fillStyle = "#f8fafc";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = "#dde4ee";
+  ctx.lineWidth = 1;
+  for (let x = 0; x < canvas.width; x += 40) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+  }
+  for (let y = 0; y < canvas.height; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
+}
+
+function drawShape(ctx, shape, selected, locked) {
+  ctx.save();
+  ctx.globalAlpha = locked ? 0.48 : 1;
+  ctx.strokeStyle = shape.color;
+  ctx.fillStyle = shape.color;
+  ctx.lineWidth = selected ? 5 : 3;
+
+  if (shape.type === "rect") {
+    ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+  }
+  if (shape.type === "circle") {
+    ctx.beginPath();
+    ctx.arc(shape.x, shape.y, shape.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (shape.type === "line") {
+    ctx.beginPath();
+    ctx.moveTo(shape.x, shape.y);
+    ctx.lineTo(shape.x2, shape.y2);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+--- src/selection.js ---
+export function hitTestLayer(boardLayers, point) {
+  for (let layerIndex = boardLayers.length - 1; layerIndex >= 0; layerIndex -= 1) {
+    const layer = boardLayers[layerIndex];
+    if (layer.locked) {
+      continue;
+    }
+    for (let shapeIndex = layer.shapes.length - 1; shapeIndex >= 0; shapeIndex -= 1) {
+      const shape = layer.shapes[shapeIndex];
+      if (containsPoint(shape, point)) {
+        return shape;
+      }
+    }
+  }
+  return null;
+}
+
+function containsPoint(shape, point) {
+  if (shape.type === "rect") {
+    return point.x >= shape.x && point.x <= shape.x + shape.width && point.y >= shape.y && point.y <= shape.y + shape.height;
+  }
+  if (shape.type === "circle") {
+    return Math.hypot(point.x - shape.x, point.y - shape.y) <= shape.radius;
+  }
+  if (shape.type === "line") {
+    const length = Math.hypot(shape.x2 - shape.x, shape.y2 - shape.y);
+    const d1 = Math.hypot(point.x - shape.x, point.y - shape.y);
+    const d2 = Math.hypot(point.x - shape.x2, point.y - shape.y2);
+    return Math.abs(d1 + d2 - length) < 8;
+  }
+  return false;
+}
+
+--- src/tools.js ---
+const tools = [
+  { id: "select", label: "Select" },
+  { id: "pen", label: "Pen" },
+  { id: "note", label: "Note" },
+];
+
+export function createToolRail(host, state, onChange) {
+  host.innerHTML = "";
+  tools.forEach((tool) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = tool.label;
+    button.className = state.tool === tool.id ? "active" : "";
+    button.addEventListener("click", () => {
+      state.tool = tool.id;
+      createToolRail(host, state, onChange);
+      onChange();
+    });
+    host.append(button);
+  });
+}
+
+--- styles/board.css ---
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #dfe5ed;
+  color: #1f2937;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.board-shell {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 300px;
+  min-height: 100vh;
+}
+
+.tool-rail,
+.comments-panel {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.tool-rail {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 16px 12px;
+  border-right: 1px solid #cbd5e1;
+}
+
+.tool-rail button {
+  min-height: 44px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.tool-rail button.active {
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+
+.canvas-stage {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: auto;
+}
+
+#board-canvas {
+  width: min(100%, 1200px);
+  height: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16);
+}
+
+.comments-panel {
+  padding: 20px;
+  border-left: 1px solid #cbd5e1;
+}
+
+.comments-panel h1 {
+  margin: 0 0 18px;
+  font-size: 22px;
+}
+
+.comments-panel article {
+  padding: 14px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.comments-panel p {
+  margin: 6px 0;
+}
+
+.comments-panel span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+@media (max-width: 880px) {
+  .board-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .tool-rail {
+    grid-auto-flow: column;
+    border-right: 0;
+    border-bottom: 1px solid #cbd5e1;
+  }
+
+  .comments-panel {
+    border-left: 0;
+    border-top: 1px solid #cbd5e1;
+  }
+}

@@ -1,0 +1,60 @@
+# RTK-style summaries for frontend_replicates__metro_ops_3d
+
+$ rtk find . -type f
+dirs: README.md/ 1, docs/ 1, index.html/ 1, package.json/ 1, scenario.json/ 1, src/ 5, styles/ 1
+ext: .css(1), .html(1), .js(5), .json(2), .md(2)
+sample: README.md, docs/task.md, index.html, package.json, scenario.json, src/controls.js, src/main.js, src/panels.js
+
+$ rtk grep 'criticalLoadThreshold|routeStatus|pulseVehicleLights|drawAlertPanel' .
+README.md: 1 shown
+  L11: `criticalLoadThreshold|routeStatus|pulseVehicleLights|drawAlertPanel`
+docs/task.md: 1 shown
+  L9: Expected edit target for the threshold task is only `criticalLoadThreshold` values in `src/telemetry.js`.
+scenario.json: 1 shown
+  L2: "search_pattern": "criticalLoadThreshold|routeStatus|pulseVehicleLights|drawAlertPanel"
+src/main.js: 3 shown
+  L1: import { buildMetroScene, pulseVehicleLights } from "./scene.js";
+  L3: import { drawAlertPanel, drawRouteTable } from "./panels.js";
+  L13: drawAlertPanel(summaryPanel, telemetrySnapshot);
+src/panels.js: 3 shown
+  L1: export function drawAlertPanel(host, telemetry) {
+  L2: const criticalRoutes = telemetry.routes.filter(routeStatus);
+  L20: const status = routeStatus(route) ? "critical" : "normal";
+src/scene.js: 2 shown
+  L87: export function pulseVehicleLights(vehicleMeshes, routes, delta) {
+  L90: const loadPulse = route.load > route.criticalLoadThreshold ? 1.25 : 0.55;
+src/telemetry.js: 3 shown
+  L46: criticalLoadThreshold: 82,
+  L60: criticalLoadThreshold: 82,
+  L71: criticalLoadThreshold: 82,
+
+# Graphify-style report for frontend_replicates__metro_ops_3d
+
+Files: 11
+Extensions: .css:1, .html:1, .js:5, .json:2, .md:2
+
+## Communities
+- docs: 2 files (README.md, docs/task.md)
+- frontend-assets: 1 files (styles/dashboard.css)
+- index.html: 1 files (index.html)
+- package.json: 1 files (package.json)
+- runtime: 5 files (src/controls.js, src/main.js, src/panels.js, src/scene.js, src/telemetry.js)
+- scenario.json: 1 files (scenario.json)
+
+## Key Symbols
+- README.md: Metro Ops 3D Fixture
+- docs/task.md: Task Notes
+- src/controls.js: createCameraControls, makeButton, button
+- src/main.js: frame, canvas, summaryPanel, routePanel, controlsHost, app, previousTime, delta
+- src/panels.js: drawAlertPanel, drawRouteTable, routeStatus, criticalRoutes, status
+- src/scene.js: buildMetroScene, addDistrictBlocks, addTransitVehicles, pulseVehicleLights, positionCamera, districtColors, renderer, scene
+- src/telemetry.js: telemetrySnapshot
+
+## Imports and Entrypoints
+- src/main.js: import { buildMetroScene, pulseVehicleLights } from "./scene.js";; import { createCameraControls } from "./controls.js";; import { drawAlertPanel, drawRouteTable } from "./panels.js";; import { telemetrySnapshot } from "./telemetry.js";
+- src/scene.js: import * as THREE from "https://cdn.skypack.dev/three@0.159.0";
+
+## Suggested Next Reads
+- README.md
+- docs/task.md
+- index.html

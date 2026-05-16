@@ -1,0 +1,75 @@
+# Baseline raw transcript for docs_replicates__policy_process
+
+$ find . -type f
+./README.md
+./docs/audit_notes.md
+./docs/exceptions.md
+./docs/policy.md
+./scenario.json
+./tools/summarize_policy.py
+
+$ rg -n 'policy|exception|owner|risk|review|audit' .
+README.md:1:# Policy Process Fixture
+README.md:3:This fixture mimics a small policy repository with ownership rules, exception handling, and audit review notes.
+docs/audit_notes.md:1:# Audit Notes
+docs/audit_notes.md:3:The audit review checks whether each policy owner has updated stale exceptions and whether risk labels still match actual data handling behavior.
+docs/exceptions.md:1:# Exception Process
+docs/exceptions.md:3:An exception request must explain the policy requirement, the reason for the exception, the risk, the proposed mitigation, and the owner responsible for review.
+docs/exceptions.md:5:Temporary exceptions expire after the next audit unless renewed.
+docs/policy.md:1:# Data Handling Policy
+docs/policy.md:3:Every dataset must have an owner, a review date, and a documented risk category. Exceptions require written approval from the project lead.
+docs/policy.md:5:High-risk data cannot be copied into examples, tickets, prompts, or public repositories.
+scenario.json:2:  "search_pattern": "policy|exception|owner|risk|review|audit"
+tools/summarize_policy.py:4:def policy_files(root: Path) -> list[Path]:
+tools/summarize_policy.py:8:def count_policy_mentions(root: Path) -> dict[str, int]:
+tools/summarize_policy.py:9:    terms = ["policy", "exception", "owner", "risk", "review", "audit"]
+tools/summarize_policy.py:10:    text = "\n".join(path.read_text(encoding="utf-8").lower() for path in policy_files(root))
+tools/summarize_policy.py:15:    for term, count in count_policy_mentions(Path(__file__).resolve().parents[1]).items():
+
+$ broad context scan: full text files
+--- README.md ---
+# Policy Process Fixture
+
+This fixture mimics a small policy repository with ownership rules, exception handling, and audit review notes.
+
+--- docs/audit_notes.md ---
+# Audit Notes
+
+The audit review checks whether each policy owner has updated stale exceptions and whether risk labels still match actual data handling behavior.
+
+--- docs/exceptions.md ---
+# Exception Process
+
+An exception request must explain the policy requirement, the reason for the exception, the risk, the proposed mitigation, and the owner responsible for review.
+
+Temporary exceptions expire after the next audit unless renewed.
+
+--- docs/policy.md ---
+# Data Handling Policy
+
+Every dataset must have an owner, a review date, and a documented risk category. Exceptions require written approval from the project lead.
+
+High-risk data cannot be copied into examples, tickets, prompts, or public repositories.
+
+--- scenario.json ---
+{
+  "search_pattern": "policy|exception|owner|risk|review|audit"
+}
+
+--- tools/summarize_policy.py ---
+from pathlib import Path
+
+
+def policy_files(root: Path) -> list[Path]:
+    return sorted((root / "docs").glob("*.md"))
+
+
+def count_policy_mentions(root: Path) -> dict[str, int]:
+    terms = ["policy", "exception", "owner", "risk", "review", "audit"]
+    text = "\n".join(path.read_text(encoding="utf-8").lower() for path in policy_files(root))
+    return {term: text.count(term) for term in terms}
+
+
+if __name__ == "__main__":
+    for term, count in count_policy_mentions(Path(__file__).resolve().parents[1]).items():
+        print(f"{term}: {count}")

@@ -1,0 +1,262 @@
+# Baseline raw transcript for ops_replicates__hpc_batch_pipeline
+
+$ find . -type f
+./README.md
+./docs/runbook.md
+./jobs/gpu_train.sbatch
+./jobs/preprocess_array.sbatch
+./scenario.json
+./scripts/collect_job_health.sh
+./scripts/preprocess_sample.py
+./scripts/submit_pipeline.sh
+./scripts/train_model.py
+
+$ rg -n 'afterok|SLURM_ARRAY_TASK_ID|checkpoint|preemption|collect_job_health' .
+README.md:8:- `jobs/gpu_train.sbatch` trains with checkpoint restart support.
+README.md:9:- `scripts/submit_pipeline.sh` submits both stages and wires the `afterok` dependency.
+README.md:10:- `scripts/collect_job_health.sh` summarizes `squeue`, `sacct`, and common failure strings.
+README.md:12:- `docs/runbook.md` describes retry and checkpoint handling.
+docs/runbook.md:9:The preprocessing job must finish cleanly before training starts. `submit_pipeline.sh` uses `afterok` so a failed array task blocks the GPU job instead of wasting allocation time.
+docs/runbook.md:13:- Use `scripts/collect_job_health.sh cohort042` when the training job is pending longer than expected.
+docs/runbook.md:15:- If `train_*.err` contains `received preemption signal`, resubmit `jobs/gpu_train.sbatch`; it resumes from the newest `epoch_*.pt` checkpoint.
+jobs/gpu_train.sbatch:17:mkdir -p "${CHECKPOINT_ROOT}" logs
+jobs/gpu_train.sbatch:20:  echo "received preemption signal; writing final checkpoint"
+jobs/gpu_train.sbatch:21:  python scripts/train_model.py --config "${TRAIN_CONFIG}" --checkpoint-dir "${CHECKPOINT_ROOT}" --save-and-exit
+jobs/gpu_train.sbatch:29:if compgen -G "${CHECKPOINT_ROOT}/epoch_*.pt" > /dev/null; then
+jobs/gpu_train.sbatch:30:  latest_checkpoint="$(ls -1 "${CHECKPOINT_ROOT}"/epoch_*.pt | sort | tail -n 1)"
+jobs/gpu_train.sbatch:31:  resume_flag=(--resume "${latest_checkpoint}")
+jobs/gpu_train.sbatch:32:  echo "resuming from ${latest_checkpoint}"
+jobs/gpu_train.sbatch:38:  --checkpoint-dir "${CHECKPOINT_ROOT}" \
+jobs/preprocess_array.sbatch:16:sample_id="$(awk -v idx="${SLURM_ARRAY_TASK_ID}" 'NR == idx { print $1 }' "${FASTQ_MANIFEST}")"
+jobs/preprocess_array.sbatch:17:fastq_path="$(awk -v idx="${SLURM_ARRAY_TASK_ID}" 'NR == idx { print $2 }' "${FASTQ_MANIFEST}")"
+jobs/preprocess_array.sbatch:20:  echo "missing manifest row for task ${SLURM_ARRAY_TASK_ID}" >&2
+scenario.json:2:  "search_pattern": "afterok|SLURM_ARRAY_TASK_ID|checkpoint|preemption|collect_job_health"
+scripts/collect_job_health.sh:14:  grep -HnE "OutOfMemory|CANCELLED|TIMEOUT|preemption|missing manifest" logs/*.err || true
+scripts/submit_pipeline.sh:10:train_job="$(sbatch --parsable --dependency="afterok:${preprocess_job}" jobs/gpu_train.sbatch)"
+scripts/submit_pipeline.sh:11:echo "submitted training job ${train_job} afterok:${preprocess_job}"
+scripts/train_model.py:2:"""Placeholder training entrypoint for dependency and checkpoint searches."""
+scripts/train_model.py:12:    parser.add_argument("--checkpoint-dir", required=True)
+scripts/train_model.py:17:    checkpoint_dir = Path(args.checkpoint_dir)
+scripts/train_model.py:18:    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+scripts/train_model.py:19:    marker = checkpoint_dir / "epoch_001.pt"
+scripts/train_model.py:25:        print("checkpoint saved before exit")
+scripts/train_model.py:27:        print(f"training complete checkpoint={marker}")
+
+$ broad context scan: full text files
+--- README.md ---
+# HPC Batch Pipeline
+
+This fixture models a two-stage Slurm workflow for a genomics team. CPU preprocessing runs as an array job, then GPU training starts only after every shard succeeds.
+
+Key files:
+
+- `jobs/preprocess_array.sbatch` splits FASTQ inputs into per-sample feature shards.
+- `jobs/gpu_train.sbatch` trains with checkpoint restart support.
+- `scripts/submit_pipeline.sh` submits both stages and wires the `afterok` dependency.
+- `scripts/collect_job_health.sh` summarizes `squeue`, `sacct`, and common failure strings.
+- `configs/dataset.env` holds dataset paths and resource defaults.
+- `docs/runbook.md` describes retry and checkpoint handling.
+
+--- docs/runbook.md ---
+# Cohort 042 Pipeline Runbook
+
+Submit from the fixture root:
+
+```bash
+scripts/submit_pipeline.sh
+```
+
+The preprocessing job must finish cleanly before training starts. `submit_pipeline.sh` uses `afterok` so a failed array task blocks the GPU job instead of wasting allocation time.
+
+Common checks:
+
+- Use `scripts/collect_job_health.sh cohort042` when the training job is pending longer than expected.
+- Retry a failed preprocessing shard with `sbatch --array=<task_id> jobs/preprocess_array.sbatch`.
+- If `train_*.err` contains `received preemption signal`, resubmit `jobs/gpu_train.sbatch`; it resumes from the newest `epoch_*.pt` checkpoint.
+- If `preprocess_*.err` contains `missing manifest row`, compare `#SBATCH --array` with the row count in `FASTQ_MANIFEST`.
+
+Escalate to the cluster queue owner when the GPU job is pending on `AssocGrpGRES` for more than four hours.
+
+--- jobs/gpu_train.sbatch ---
+#!/usr/bin/env bash
+#SBATCH --job-name=cohort042-train
+#SBATCH --partition=gpu
+#SBATCH --account=bioinf-prod
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=12
+#SBATCH --mem=96G
+#SBATCH --time=12:00:00
+#SBATCH --signal=B:USR1@120
+#SBATCH --output=logs/train_%j.out
+#SBATCH --error=logs/train_%j.err
+
+set -euo pipefail
+
+source configs/dataset.env
+
+mkdir -p "${CHECKPOINT_ROOT}" logs
+
+handle_preempt() {
+  echo "received preemption signal; writing final checkpoint"
+  python scripts/train_model.py --config "${TRAIN_CONFIG}" --checkpoint-dir "${CHECKPOINT_ROOT}" --save-and-exit
+}
+trap handle_preempt USR1
+
+module purge
+module load cuda/12.2 python/3.11
+
+resume_flag=()
+if compgen -G "${CHECKPOINT_ROOT}/epoch_*.pt" > /dev/null; then
+  latest_checkpoint="$(ls -1 "${CHECKPOINT_ROOT}"/epoch_*.pt | sort | tail -n 1)"
+  resume_flag=(--resume "${latest_checkpoint}")
+  echo "resuming from ${latest_checkpoint}"
+fi
+
+python scripts/train_model.py \
+  --config "${TRAIN_CONFIG}" \
+  --features "${FEATURE_ROOT}" \
+  --checkpoint-dir "${CHECKPOINT_ROOT}" \
+  "${resume_flag[@]}"
+
+--- jobs/preprocess_array.sbatch ---
+#!/usr/bin/env bash
+#SBATCH --job-name=cohort042-preprocess
+#SBATCH --partition=cpu
+#SBATCH --account=bioinf-prod
+#SBATCH --array=1-128%24
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=24G
+#SBATCH --time=02:00:00
+#SBATCH --output=logs/preprocess_%A_%a.out
+#SBATCH --error=logs/preprocess_%A_%a.err
+
+set -euo pipefail
+
+source configs/dataset.env
+
+sample_id="$(awk -v idx="${SLURM_ARRAY_TASK_ID}" 'NR == idx { print $1 }' "${FASTQ_MANIFEST}")"
+fastq_path="$(awk -v idx="${SLURM_ARRAY_TASK_ID}" 'NR == idx { print $2 }' "${FASTQ_MANIFEST}")"
+
+if [[ -z "${sample_id}" || -z "${fastq_path}" ]]; then
+  echo "missing manifest row for task ${SLURM_ARRAY_TASK_ID}" >&2
+  exit 22
+fi
+
+mkdir -p "${FEATURE_ROOT}/${sample_id}"
+
+echo "preprocess sample=${sample_id} fastq=${fastq_path}"
+module purge
+module load python/3.11 fastp/0.23
+
+python scripts/preprocess_sample.py \
+  --sample "${sample_id}" \
+  --fastq "${fastq_path}" \
+  --output "${FEATURE_ROOT}/${sample_id}" \
+  --threads "${PREPROCESS_CPUS}"
+
+echo "complete sample=${sample_id} output=${FEATURE_ROOT}/${sample_id}"
+
+--- scenario.json ---
+{
+  "search_pattern": "afterok|SLURM_ARRAY_TASK_ID|checkpoint|preemption|collect_job_health"
+}
+
+--- scripts/collect_job_health.sh ---
+#!/usr/bin/env bash
+set -euo pipefail
+
+job_filter="${1:-cohort042}"
+
+echo "== queue =="
+squeue --name "*${job_filter}*" --format="%.18i %.30j %.8T %.10M %.6D %R" || true
+
+echo "== accounting =="
+sacct --name "*${job_filter}*" --format=JobID,JobName%30,State,Elapsed,MaxRSS,ExitCode --parsable2 || true
+
+echo "== log warnings =="
+if compgen -G "logs/*.err" > /dev/null; then
+  grep -HnE "OutOfMemory|CANCELLED|TIMEOUT|preemption|missing manifest" logs/*.err || true
+else
+  echo "no stderr logs found"
+fi
+
+--- scripts/preprocess_sample.py ---
+#!/usr/bin/env python3
+"""Tiny placeholder used by the Slurm fixture."""
+
+import argparse
+from pathlib import Path
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--sample", required=True)
+    parser.add_argument("--fastq", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--threads", required=True)
+    args = parser.parse_args()
+
+    output = Path(args.output)
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "features.parquet").write_text(
+        f"sample={args.sample}\nfastq={args.fastq}\nthreads={args.threads}\n",
+        encoding="utf-8",
+    )
+
+
+if __name__ == "__main__":
+    main()
+
+--- scripts/submit_pipeline.sh ---
+#!/usr/bin/env bash
+set -euo pipefail
+
+source configs/dataset.env
+mkdir -p logs
+
+preprocess_job="$(sbatch --parsable jobs/preprocess_array.sbatch)"
+echo "submitted preprocess array ${preprocess_job}"
+
+train_job="$(sbatch --parsable --dependency="afterok:${preprocess_job}" jobs/gpu_train.sbatch)"
+echo "submitted training job ${train_job} afterok:${preprocess_job}"
+
+cat <<STATUS
+Pipeline submitted.
+  preprocess: ${preprocess_job}
+  train:      ${train_job}
+  manifest:   ${FASTQ_MANIFEST}
+  features:   ${FEATURE_ROOT}
+STATUS
+
+--- scripts/train_model.py ---
+#!/usr/bin/env python3
+"""Placeholder training entrypoint for dependency and checkpoint searches."""
+
+import argparse
+from pathlib import Path
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", required=True)
+    parser.add_argument("--features")
+    parser.add_argument("--checkpoint-dir", required=True)
+    parser.add_argument("--resume")
+    parser.add_argument("--save-and-exit", action="store_true")
+    args = parser.parse_args()
+
+    checkpoint_dir = Path(args.checkpoint_dir)
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    marker = checkpoint_dir / "epoch_001.pt"
+    marker.write_text(
+        f"config={args.config}\nfeatures={args.features}\nresume={args.resume}\n",
+        encoding="utf-8",
+    )
+    if args.save_and_exit:
+        print("checkpoint saved before exit")
+    else:
+        print(f"training complete checkpoint={marker}")
+
+
+if __name__ == "__main__":
+    main()
