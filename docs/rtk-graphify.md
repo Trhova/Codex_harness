@@ -35,8 +35,8 @@ rtk --help
 Graphify generates repository artifacts:
 
 ```bash
-graphify .
-graphify update .
+/home/<user>/codex_harness/scripts/build_graph.sh /path/to/project
+/home/<user>/codex_harness/scripts/refresh_graph.sh /path/to/project
 ```
 
 The most important file for Codex is:

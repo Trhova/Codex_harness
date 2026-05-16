@@ -1,0 +1,63 @@
+# RTK-style summaries for python_service
+
+$ rtk find . -type f
+dirs: README.md/ 1, docs/ 1, src/ 4, tests/ 1
+ext: .md(2), .py(5)
+sample: README.md, docs/architecture.md, src/app.py, src/config.py, src/routes.py, src/storage.py, tests/test_routes.py
+
+$ rtk grep 'route|handler|database|cache|test|config' .
+README.md: 1 shown
+  L3: This fixture represents a small service with routes, storage, configuration, and tests. It is intentionally compact but
+docs/architecture.md: 2 shown
+  L3: Requests enter through `Router`, which owns route registration and delegates persistence to `EventStore`. Configuration
+  L5: The database URL is intentionally not opened by this fixture; the storage class is in-memory so the context experiment r
+src/app.py: 3 shown
+  L1: from .config import Settings
+  L2: from .routes import Router
+  L6: def create_app(settings: Settings | None = None) -> Router:
+src/config.py: 3 shown
+  L7: database_url: str
+  L8: cache_ttl_seconds: int
+  L14: database_url=os.getenv("DATABASE_URL", "sqlite:///events.db"),
+src/routes.py: 3 shown
+  L1: from .config import Settings
+  L5: class Router:
+  L9: self.routes: dict[tuple[str, str], object] = {}
+src/storage.py: 2 shown
+  L5: def __init__(self, database_url: str) -> None:
+  L6: self.database_url = database_url
+tests/test_routes.py: 3 shown
+  L2: from src.config import Settings
+  L5: def test_health_reports_database() -> None:
+  L6: app = create_app(Settings(database_url="sqlite:///:memory:", cache_ttl_seconds=1, max_page_size=2))
+
+# Graphify-style report for python_service
+
+Files: 7
+Extensions: .md:2, .py:5
+
+## Communities
+- docs: 2 files (README.md, docs/architecture.md)
+- runtime: 4 files (src/app.py, src/config.py, src/routes.py, src/storage.py)
+- tests: 1 files (tests/test_routes.py)
+
+## Key Symbols
+- README.md: Python Service Fixture
+- docs/architecture.md: Architecture
+- src/app.py: create_app, main
+- src/config.py: Settings, from_env
+- src/routes.py: Router, __init__, add_route, health, create_event, list_events
+- src/storage.py: EventStore, __init__, append, list_recent
+- tests/test_routes.py: test_health_reports_database, test_create_and_list_events
+
+## Imports and Entrypoints
+- src/app.py: from .config import Settings; from .routes import Router; from .storage import EventStore
+- src/config.py: import os; from dataclasses import dataclass
+- src/routes.py: from .config import Settings; from .storage import EventStore
+- src/storage.py: from datetime import datetime, timezone
+- tests/test_routes.py: from src.app import create_app; from src.config import Settings
+
+## Suggested Next Reads
+- README.md
+- docs/architecture.md
+- src/app.py

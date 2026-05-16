@@ -35,8 +35,8 @@ rtk pytest
 ## Graphify
 
 ```bash
-graphify .
-graphify update .
+/home/<user>/codex_harness/scripts/build_graph.sh /path/to/project
+/home/<user>/codex_harness/scripts/refresh_graph.sh /path/to/project
 sed -n '1,160p' graphify-out/GRAPH_REPORT.md
 ```
 

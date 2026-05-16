@@ -1,0 +1,32 @@
+[
+  {
+    "scenario": "hpc_jobs",
+    "files": 6,
+    "baseline_chars": 4206,
+    "harness_chars": 1993,
+    "baseline_tokens": 1052,
+    "harness_tokens": 499,
+    "token_delta": -553,
+    "token_delta_percent": -52.6
+  },
+  {
+    "scenario": "python_service",
+    "files": 7,
+    "baseline_chars": 6847,
+    "harness_chars": 2639,
+    "baseline_tokens": 1712,
+    "harness_tokens": 660,
+    "token_delta": -1052,
+    "token_delta_percent": -61.4
+  },
+  {
+    "scenario": "three_d_city",
+    "files": 7,
+    "baseline_chars": 7255,
+    "harness_chars": 2248,
+    "baseline_tokens": 1814,
+    "harness_tokens": 562,
+    "token_delta": -1252,
+    "token_delta_percent": -69.0
+  }
+]

@@ -1,0 +1,113 @@
+# Baseline raw transcript for hpc_jobs
+
+$ find . -type f
+./README.md
+./docs/operations.md
+./jobs/array_preprocess.sbatch
+./jobs/train_gpu.sbatch
+./scripts/common.sh
+./scripts/monitor.sh
+
+$ rg -n 'sbatch|module|queue|gpu|memory|checkpoint|array' .
+README.md:3:This fixture mimics a small repository of Slurm job scripts. It has shell utilities, job entry points, and operational notes for queue and checkpoint behavior.
+docs/operations.md:3:Use the GPU partition only for training jobs. CPU preprocessing should run as a Slurm array so failed shards can be retried independently.
+docs/operations.md:5:Checkpoints are written under `checkpoints/` and logs are written under `logs/`. When a queue is busy, submit preprocessing first and start training with an `afterok` dependency.
+jobs/array_preprocess.sbatch:2:#SBATCH --job-name=preprocess-array
+jobs/array_preprocess.sbatch:3:#SBATCH --array=0-15
+jobs/array_preprocess.sbatch:4:#SBATCH --partition=cpu
+jobs/array_preprocess.sbatch:5:#SBATCH --mem=8G
+jobs/array_preprocess.sbatch:6:#SBATCH --time=01:00:00
+jobs/array_preprocess.sbatch:11:load_modules python/3.11
+jobs/array_preprocess.sbatch:12:prepare_workspace "${SLURM_ARRAY_TASK_ID}"
+jobs/array_preprocess.sbatch:13:python preprocess.py --shard "${SLURM_ARRAY_TASK_ID}" --shards 16
+jobs/train_gpu.sbatch:2:#SBATCH --job-name=city-train
+jobs/train_gpu.sbatch:3:#SBATCH --partition=gpu
+jobs/train_gpu.sbatch:4:#SBATCH --gres=gpu:1
+jobs/train_gpu.sbatch:5:#SBATCH --mem=32G
+jobs/train_gpu.sbatch:6:#SBATCH --time=04:00:00
+jobs/train_gpu.sbatch:11:load_modules cuda/12.2 python/3.11
+jobs/train_gpu.sbatch:13:python train.py --checkpoint "checkpoints/${SLURM_JOB_ID}.pt" --epochs 20
+scripts/common.sh:3:load_modules() {
+scripts/common.sh:4:  for module_name in "$@"; do
+scripts/common.sh:5:    module load "${module_name}"
+scripts/common.sh:11:  mkdir -p "runs/${run_id}" checkpoints logs
+scripts/common.sh:19:  sbatch --dependency="afterok:${dependency}" "${script}"
+scripts/monitor.sh:4:queue="${1:-$USER}"
+scripts/monitor.sh:5:squeue --user "${queue}" --format="%.18i %.9P %.24j %.8T %.10M %.6D %R"
+scripts/monitor.sh:8:  grep -n "OutOfMemory\\|CANCELLED\\|checkpoint" logs/*.err || true
+
+$ broad context scan: full text files
+--- README.md ---
+# HPC Jobs Fixture
+
+This fixture mimics a small repository of Slurm job scripts. It has shell utilities, job entry points, and operational notes for queue and checkpoint behavior.
+
+--- docs/operations.md ---
+# Operations Notes
+
+Use the GPU partition only for training jobs. CPU preprocessing should run as a Slurm array so failed shards can be retried independently.
+
+Checkpoints are written under `checkpoints/` and logs are written under `logs/`. When a queue is busy, submit preprocessing first and start training with an `afterok` dependency.
+
+--- jobs/array_preprocess.sbatch ---
+#!/usr/bin/env bash
+#SBATCH --job-name=preprocess-array
+#SBATCH --array=0-15
+#SBATCH --partition=cpu
+#SBATCH --mem=8G
+#SBATCH --time=01:00:00
+
+set -euo pipefail
+source scripts/common.sh
+
+load_modules python/3.11
+prepare_workspace "${SLURM_ARRAY_TASK_ID}"
+python preprocess.py --shard "${SLURM_ARRAY_TASK_ID}" --shards 16
+
+--- jobs/train_gpu.sbatch ---
+#!/usr/bin/env bash
+#SBATCH --job-name=city-train
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+#SBATCH --mem=32G
+#SBATCH --time=04:00:00
+
+set -euo pipefail
+source scripts/common.sh
+
+load_modules cuda/12.2 python/3.11
+prepare_workspace "${SLURM_JOB_ID}"
+python train.py --checkpoint "checkpoints/${SLURM_JOB_ID}.pt" --epochs 20
+
+--- scripts/common.sh ---
+#!/usr/bin/env bash
+
+load_modules() {
+  for module_name in "$@"; do
+    module load "${module_name}"
+  done
+}
+
+prepare_workspace() {
+  local run_id="$1"
+  mkdir -p "runs/${run_id}" checkpoints logs
+  export TMPDIR="runs/${run_id}/tmp"
+  mkdir -p "${TMPDIR}"
+}
+
+submit_with_dependency() {
+  local dependency="$1"
+  local script="$2"
+  sbatch --dependency="afterok:${dependency}" "${script}"
+}
+
+--- scripts/monitor.sh ---
+#!/usr/bin/env bash
+set -euo pipefail
+
+queue="${1:-$USER}"
+squeue --user "${queue}" --format="%.18i %.9P %.24j %.8T %.10M %.6D %R"
+
+if compgen -G "logs/*.err" > /dev/null; then
+  grep -n "OutOfMemory\\|CANCELLED\\|checkpoint" logs/*.err || true
+fi

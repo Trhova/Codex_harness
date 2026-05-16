@@ -4,10 +4,10 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd "${SCRIPT_DIR}/.." && pwd)
 PROJECT_ROOT=${PROJECT_ROOT:-${1:-}}
-GRAPHIFY_BIN="${REPO_ROOT}/.venv/bin/graphify"
+PYTHON_BIN="${REPO_ROOT}/.venv/bin/python"
 
-if [[ ! -x "${GRAPHIFY_BIN}" ]]; then
-  echo "graphify is not installed yet: ${GRAPHIFY_BIN}" >&2
+if [[ ! -x "${PYTHON_BIN}" ]]; then
+  echo "harness Python environment is not installed yet: ${PYTHON_BIN}" >&2
   exit 1
 fi
 
@@ -17,4 +17,4 @@ if [[ -z "${PROJECT_ROOT}" ]]; then
 fi
 
 cd "${PROJECT_ROOT}"
-exec "${GRAPHIFY_BIN}" .
+exec "${PYTHON_BIN}" -c "from pathlib import Path; from graphify.watch import _rebuild_code; import sys; sys.exit(0 if _rebuild_code(Path('.')) else 1)"

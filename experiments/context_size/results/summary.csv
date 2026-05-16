@@ -1,0 +1,4 @@
+scenario,files,baseline_chars,harness_chars,baseline_tokens,harness_tokens,token_delta,token_delta_percent
+hpc_jobs,6,4206,1993,1052,499,-553,-52.6
+python_service,7,6847,2639,1712,660,-1052,-61.4
+three_d_city,7,7255,2248,1814,562,-1252,-69.0

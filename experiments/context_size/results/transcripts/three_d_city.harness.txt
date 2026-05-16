@@ -1,0 +1,54 @@
+# RTK-style summaries for three_d_city
+
+$ rtk find . -type f
+dirs: README.md/ 1, index.html/ 1, src/ 4, styles/ 1
+ext: .css(1), .html(1), .js(4), .md(1)
+sample: README.md, index.html, src/controls.js, src/main.js, src/scene.js, src/traffic.js, styles/city.css
+
+$ rtk grep 'scene|camera|building|traffic|render|geometry|control' .
+README.md: 1 shown
+  L3: This fixture is a small Three.js-style city scene. It is not intended to be bundled; it gives the experiment a frontend/
+src/controls.js: 3 shown
+  L1: export function attachControls(camera, element) {
+  L21: const nextX = camera.position.x * Math.cos(angle) - camera.position.z * Math.sin(angle);
+  L22: const nextZ = camera.position.x * Math.sin(angle) + camera.position.z * Math.cos(angle);
+src/main.js: 3 shown
+  L1: import { createCityScene } from "./scene.js";
+  L2: import { createTraffic } from "./traffic.js";
+  L3: import { attachControls } from "./controls.js";
+src/scene.js: 3 shown
+  L4: export function createCityScene(canvas) {
+  L5: const scene = new THREE.Scene();
+  L6: scene.background = new THREE.Color("#87b6d8");
+src/traffic.js: 3 shown
+  L4: export function createTraffic(scene) {
+  L8: const car = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 0.45), material);
+  L10: scene.add(car);
+
+# Graphify-style report for three_d_city
+
+Files: 7
+Extensions: .css:1, .html:1, .js:4, .md:1
+
+## Communities
+- docs: 1 files (README.md)
+- frontend-assets: 1 files (styles/city.css)
+- index.html: 1 files (index.html)
+- runtime: 4 files (src/controls.js, src/main.js, src/scene.js, src/traffic.js)
+
+## Key Symbols
+- README.md: 3D City Fixture
+- src/controls.js: attachControls, dragging, lastX, delta, angle, nextX, nextZ
+- src/main.js: render, canvas, city, traffic
+- src/scene.js: createCityScene, addLights, addGround, addBuildings, scene, camera, renderer, sun
+- src/traffic.js: createTraffic, cars, material, index, car, loop
+
+## Imports and Entrypoints
+- src/main.js: import { createCityScene } from "./scene.js";; import { createTraffic } from "./traffic.js";; import { attachControls } from "./controls.js";
+- src/scene.js: import * as THREE from "three";
+- src/traffic.js: import * as THREE from "three";
+
+## Suggested Next Reads
+- README.md
+- index.html
+- src/controls.js

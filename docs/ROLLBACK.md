@@ -52,5 +52,5 @@ The intended Codex behavior after bootstrap is to prefer `rtk` for non-trivial s
 
 Graph output generation is separate from activation:
 
-- `scripts/build_graph.sh /path/to/project` runs the first documented build with `graphify .`
-- `scripts/refresh_graph.sh /path/to/project` runs the documented update path with `graphify . --update`
+- `scripts/build_graph.sh /path/to/project` rebuilds the code graph through the harness-managed Graphify Python package.
+- `scripts/refresh_graph.sh /path/to/project` runs the same code-only rebuild path, which updates `graphify-out/GRAPH_REPORT.md` and `graphify-out/graph.json`.

@@ -1,0 +1,217 @@
+# Baseline raw transcript for three_d_city
+
+$ find . -type f
+./README.md
+./index.html
+./src/controls.js
+./src/main.js
+./src/scene.js
+./src/traffic.js
+./styles/city.css
+
+$ rg -n 'scene|camera|building|traffic|render|geometry|control' .
+README.md:3:This fixture is a small Three.js-style city scene. It is not intended to be bundled; it gives the experiment a frontend/game-like codebase with scene setup, geometry, traffic movement, and controls.
+src/controls.js:1:export function attachControls(camera, element) {
+src/controls.js:21:    const nextX = camera.position.x * Math.cos(angle) - camera.position.z * Math.sin(angle);
+src/controls.js:22:    const nextZ = camera.position.x * Math.sin(angle) + camera.position.z * Math.cos(angle);
+src/controls.js:23:    camera.position.x = nextX;
+src/controls.js:24:    camera.position.z = nextZ;
+src/controls.js:25:    camera.lookAt(0, 0, 0);
+src/main.js:1:import { createCityScene } from "./scene.js";
+src/main.js:2:import { createTraffic } from "./traffic.js";
+src/main.js:3:import { attachControls } from "./controls.js";
+src/main.js:6:const city = createCityScene(canvas);
+src/main.js:7:const traffic = createTraffic(city.scene);
+src/main.js:9:attachControls(city.camera, city.renderer.domElement);
+src/main.js:11:function render(time) {
+src/main.js:12:  traffic.update(time / 1000);
+src/main.js:13:  city.renderer.render(city.scene, city.camera);
+src/main.js:14:  requestAnimationFrame(render);
+src/main.js:17:requestAnimationFrame(render);
+src/scene.js:4:export function createCityScene(canvas) {
+src/scene.js:5:  const scene = new THREE.Scene();
+src/scene.js:6:  scene.background = new THREE.Color("#87b6d8");
+src/scene.js:8:  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
+src/scene.js:9:  camera.position.set(18, 16, 24);
+src/scene.js:10:  camera.lookAt(0, 0, 0);
+src/scene.js:12:  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+src/scene.js:13:  renderer.setSize(window.innerWidth, window.innerHeight);
+src/scene.js:14:  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+src/scene.js:16:  addLights(scene);
+src/scene.js:17:  addGround(scene);
+src/scene.js:18:  addBuildings(scene);
+src/scene.js:19:  return { scene, camera, renderer };
+src/scene.js:23:function addLights(scene) {
+src/scene.js:26:  scene.add(sun);
+src/scene.js:27:  scene.add(new THREE.AmbientLight("#d8ecff", 0.8));
+src/scene.js:31:function addGround(scene) {
+src/scene.js:33:    new THREE.PlaneGeometry(60, 60),
+src/scene.js:37:  scene.add(ground);
+src/scene.js:41:function addBuildings(scene) {
+src/scene.js:46:      const building = new THREE.Mesh(new THREE.BoxGeometry(1.1, height, 1.1), material);
+src/scene.js:47:      building.position.set(x * 2, height / 2, z * 2);
+src/scene.js:48:      scene.add(building);
+src/traffic.js:4:export function createTraffic(scene) {
+src/traffic.js:8:    const car = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 0.45), material);
+src/traffic.js:10:    scene.add(car);
+
+$ broad context scan: full text files
+--- README.md ---
+# 3D City Fixture
+
+This fixture is a small Three.js-style city scene. It is not intended to be bundled; it gives the experiment a frontend/game-like codebase with scene setup, geometry, traffic movement, and controls.
+
+--- index.html ---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mini 3D City</title>
+    <link rel="stylesheet" href="styles/city.css">
+  </head>
+  <body>
+    <canvas id="city"></canvas>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
+
+--- src/controls.js ---
+export function attachControls(camera, element) {
+  let dragging = false;
+  let lastX = 0;
+
+  element.addEventListener("pointerdown", (event) => {
+    dragging = true;
+    lastX = event.clientX;
+  });
+
+  element.addEventListener("pointerup", () => {
+    dragging = false;
+  });
+
+  element.addEventListener("pointermove", (event) => {
+    if (!dragging) {
+      return;
+    }
+    const delta = event.clientX - lastX;
+    lastX = event.clientX;
+    const angle = delta * 0.005;
+    const nextX = camera.position.x * Math.cos(angle) - camera.position.z * Math.sin(angle);
+    const nextZ = camera.position.x * Math.sin(angle) + camera.position.z * Math.cos(angle);
+    camera.position.x = nextX;
+    camera.position.z = nextZ;
+    camera.lookAt(0, 0, 0);
+  });
+}
+
+--- src/main.js ---
+import { createCityScene } from "./scene.js";
+import { createTraffic } from "./traffic.js";
+import { attachControls } from "./controls.js";
+
+const canvas = document.querySelector("#city");
+const city = createCityScene(canvas);
+const traffic = createTraffic(city.scene);
+
+attachControls(city.camera, city.renderer.domElement);
+
+function render(time) {
+  traffic.update(time / 1000);
+  city.renderer.render(city.scene, city.camera);
+  requestAnimationFrame(render);
+}
+
+requestAnimationFrame(render);
+
+--- src/scene.js ---
+import * as THREE from "three";
+
+
+export function createCityScene(canvas) {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color("#87b6d8");
+
+  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
+  camera.position.set(18, 16, 24);
+  camera.lookAt(0, 0, 0);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  addLights(scene);
+  addGround(scene);
+  addBuildings(scene);
+  return { scene, camera, renderer };
+}
+
+
+function addLights(scene) {
+  const sun = new THREE.DirectionalLight("#ffffff", 2.5);
+  sun.position.set(10, 20, 8);
+  scene.add(sun);
+  scene.add(new THREE.AmbientLight("#d8ecff", 0.8));
+}
+
+
+function addGround(scene) {
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(60, 60),
+    new THREE.MeshStandardMaterial({ color: "#5d8a66" }),
+  );
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
+}
+
+
+function addBuildings(scene) {
+  const material = new THREE.MeshStandardMaterial({ color: "#c6ccd2", roughness: 0.7 });
+  for (let x = -4; x <= 4; x += 2) {
+    for (let z = -4; z <= 4; z += 2) {
+      const height = 1.5 + ((x * x + z * z) % 5);
+      const building = new THREE.Mesh(new THREE.BoxGeometry(1.1, height, 1.1), material);
+      building.position.set(x * 2, height / 2, z * 2);
+      scene.add(building);
+    }
+  }
+}
+
+--- src/traffic.js ---
+import * as THREE from "three";
+
+
+export function createTraffic(scene) {
+  const cars = [];
+  const material = new THREE.MeshStandardMaterial({ color: "#d64242" });
+  for (let index = 0; index < 8; index += 1) {
+    const car = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 0.45), material);
+    car.userData.offset = index * 0.8;
+    scene.add(car);
+    cars.push(car);
+  }
+  return {
+    update(seconds) {
+      for (const car of cars) {
+        const loop = (seconds + car.userData.offset) % 8;
+        car.position.set(loop * 2 - 8, 0.25, Math.sin(loop) * 6);
+      }
+    },
+  };
+}
+
+--- styles/city.css ---
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #101820;
+}
+
+#city {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}

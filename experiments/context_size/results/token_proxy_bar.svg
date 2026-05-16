@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="360" viewBox="0 0 920 360">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="24" y="34" font-family="Arial, sans-serif" font-size="20" font-weight="700">Token proxy by workflow</text>
+<text x="24" y="58" font-family="Arial, sans-serif" font-size="12" fill="#555">estimated tokens = ceil(characters / 4)</text>
+<line x1="130" y1="290" x2="880" y2="290" stroke="#333"/>
+<line x1="130" y1="80" x2="130" y2="290" stroke="#333"/>
+<line x1="130" y1="290.0" x2="880" y2="290.0" stroke="#e6e6e6"/>
+<text x="118" y="294.0" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#555">0</text>
+<line x1="130" y1="237.4" x2="880" y2="237.4" stroke="#e6e6e6"/>
+<text x="118" y="241.4" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#555">454</text>
+<line x1="130" y1="185.0" x2="880" y2="185.0" stroke="#e6e6e6"/>
+<text x="118" y="189.0" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#555">907</text>
+<line x1="130" y1="132.6" x2="880" y2="132.6" stroke="#e6e6e6"/>
+<text x="118" y="136.6" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#555">1360</text>
+<line x1="130" y1="80.0" x2="880" y2="80.0" stroke="#e6e6e6"/>
+<text x="118" y="84.0" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#555">1814</text>
+<rect x="218.0" y="168.2" width="34" height="121.8" fill="#4c78a8"/>
+<text x="235.0" y="163.2" text-anchor="middle" font-family="Arial, sans-serif" font-size="11">1052</text>
+<rect x="258.0" y="232.2" width="34" height="57.8" fill="#f58518"/>
+<text x="275.0" y="227.2" text-anchor="middle" font-family="Arial, sans-serif" font-size="11">499</text>
+<text x="255.0" y="318" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">hpc jobs</text>
+<rect x="468.0" y="91.8" width="34" height="198.2" fill="#4c78a8"/>
+<text x="485.0" y="86.8" text-anchor="middle" font-family="Arial, sans-serif" font-size="11">1712</text>
+<rect x="508.0" y="213.6" width="34" height="76.4" fill="#f58518"/>
+<text x="525.0" y="208.6" text-anchor="middle" font-family="Arial, sans-serif" font-size="11">660</text>
+<text x="505.0" y="318" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">python service</text>
+<rect x="718.0" y="80.0" width="34" height="210.0" fill="#4c78a8"/>
+<text x="735.0" y="75.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11">1814</text>
+<rect x="758.0" y="224.9" width="34" height="65.1" fill="#f58518"/>
+<text x="775.0" y="219.9" text-anchor="middle" font-family="Arial, sans-serif" font-size="11">562</text>
+<text x="755.0" y="318" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">three d city</text>
+<rect x="700" y="24" width="14" height="14" fill="#4c78a8"/>
+<text x="720" y="36" font-family="Arial, sans-serif" font-size="12">without harness</text>
+<rect x="700" y="44" width="14" height="14" fill="#f58518"/>
+<text x="720" y="56" font-family="Arial, sans-serif" font-size="12">with harness</text>
+</svg>

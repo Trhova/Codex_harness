@@ -4,4 +4,5 @@ state/backups/
 state/tmp/
 vendor/*/.graphify_*
 graphify-out/
-scripts/__pycache__/
+__pycache__/
+*.pyc

@@ -1,0 +1,167 @@
+# Baseline raw transcript for python_service
+
+$ find . -type f
+./README.md
+./docs/architecture.md
+./src/app.py
+./src/config.py
+./src/routes.py
+./src/storage.py
+./tests/test_routes.py
+
+$ rg -n 'route|handler|database|cache|test|config' .
+README.md:3:This fixture represents a small service with routes, storage, configuration, and tests. It is intentionally compact but includes enough cross-file references to make broad scans produce redundant context.
+docs/architecture.md:3:Requests enter through `Router`, which owns route registration and delegates persistence to `EventStore`. Configuration is isolated in `Settings` so tests can avoid environment mutation.
+docs/architecture.md:5:The database URL is intentionally not opened by this fixture; the storage class is in-memory so the context experiment remains deterministic.
+src/app.py:1:from .config import Settings
+src/app.py:2:from .routes import Router
+src/app.py:6:def create_app(settings: Settings | None = None) -> Router:
+src/app.py:8:    store = EventStore(settings.database_url)
+src/app.py:9:    router = Router(settings=settings, store=store)
+src/app.py:10:    router.add_route("GET", "/health", router.health)
+src/app.py:11:    router.add_route("POST", "/events", router.create_event)
+src/app.py:12:    router.add_route("GET", "/events", router.list_events)
+src/app.py:13:    return router
+src/app.py:18:    print(f"service ready with {len(app.routes)} routes")
+src/config.py:7:    database_url: str
+src/config.py:8:    cache_ttl_seconds: int
+src/config.py:14:            database_url=os.getenv("DATABASE_URL", "sqlite:///events.db"),
+src/config.py:15:            cache_ttl_seconds=int(os.getenv("CACHE_TTL_SECONDS", "30")),
+src/routes.py:1:from .config import Settings
+src/routes.py:5:class Router:
+src/routes.py:9:        self.routes: dict[tuple[str, str], object] = {}
+src/routes.py:11:    def add_route(self, method: str, path: str, handler: object) -> None:
+src/routes.py:12:        self.routes[(method, path)] = handler
+src/routes.py:15:        return {"ok": True, "database": self.settings.database_url}
+src/storage.py:5:    def __init__(self, database_url: str) -> None:
+src/storage.py:6:        self.database_url = database_url
+tests/test_routes.py:2:from src.config import Settings
+tests/test_routes.py:5:def test_health_reports_database() -> None:
+tests/test_routes.py:6:    app = create_app(Settings(database_url="sqlite:///:memory:", cache_ttl_seconds=1, max_page_size=2))
+tests/test_routes.py:9:    assert response["database"] == "sqlite:///:memory:"
+tests/test_routes.py:12:def test_create_and_list_events() -> None:
+tests/test_routes.py:13:    app = create_app(Settings(database_url="sqlite:///:memory:", cache_ttl_seconds=1, max_page_size=2))
+
+$ broad context scan: full text files
+--- README.md ---
+# Python Service Fixture
+
+This fixture represents a small service with routes, storage, configuration, and tests. It is intentionally compact but includes enough cross-file references to make broad scans produce redundant context.
+
+--- docs/architecture.md ---
+# Architecture
+
+Requests enter through `Router`, which owns route registration and delegates persistence to `EventStore`. Configuration is isolated in `Settings` so tests can avoid environment mutation.
+
+The database URL is intentionally not opened by this fixture; the storage class is in-memory so the context experiment remains deterministic.
+
+--- src/app.py ---
+from .config import Settings
+from .routes import Router
+from .storage import EventStore
+
+
+def create_app(settings: Settings | None = None) -> Router:
+    settings = settings or Settings.from_env()
+    store = EventStore(settings.database_url)
+    router = Router(settings=settings, store=store)
+    router.add_route("GET", "/health", router.health)
+    router.add_route("POST", "/events", router.create_event)
+    router.add_route("GET", "/events", router.list_events)
+    return router
+
+
+def main() -> None:
+    app = create_app()
+    print(f"service ready with {len(app.routes)} routes")
+
+
+if __name__ == "__main__":
+    main()
+
+--- src/config.py ---
+import os
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Settings:
+    database_url: str
+    cache_ttl_seconds: int
+    max_page_size: int
+
+    @classmethod
+    def from_env(cls) -> "Settings":
+        return cls(
+            database_url=os.getenv("DATABASE_URL", "sqlite:///events.db"),
+            cache_ttl_seconds=int(os.getenv("CACHE_TTL_SECONDS", "30")),
+            max_page_size=int(os.getenv("MAX_PAGE_SIZE", "100")),
+        )
+
+--- src/routes.py ---
+from .config import Settings
+from .storage import EventStore
+
+
+class Router:
+    def __init__(self, settings: Settings, store: EventStore) -> None:
+        self.settings = settings
+        self.store = store
+        self.routes: dict[tuple[str, str], object] = {}
+
+    def add_route(self, method: str, path: str, handler: object) -> None:
+        self.routes[(method, path)] = handler
+
+    def health(self, request: dict) -> dict:
+        return {"ok": True, "database": self.settings.database_url}
+
+    def create_event(self, request: dict) -> dict:
+        payload = request.get("json", {})
+        event = self.store.append(payload)
+        return {"status": 201, "event": event}
+
+    def list_events(self, request: dict) -> dict:
+        requested = int(request.get("query", {}).get("limit", self.settings.max_page_size))
+        limit = min(requested, self.settings.max_page_size)
+        return {"events": self.store.list_recent(limit)}
+
+--- src/storage.py ---
+from datetime import datetime, timezone
+
+
+class EventStore:
+    def __init__(self, database_url: str) -> None:
+        self.database_url = database_url
+        self.events: list[dict] = []
+
+    def append(self, payload: dict) -> dict:
+        event = {
+            "id": len(self.events) + 1,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "payload": payload,
+        }
+        self.events.append(event)
+        return event
+
+    def list_recent(self, limit: int) -> list[dict]:
+        return list(reversed(self.events[-limit:]))
+
+--- tests/test_routes.py ---
+from src.app import create_app
+from src.config import Settings
+
+
+def test_health_reports_database() -> None:
+    app = create_app(Settings(database_url="sqlite:///:memory:", cache_ttl_seconds=1, max_page_size=2))
+    response = app.health({})
+    assert response["ok"] is True
+    assert response["database"] == "sqlite:///:memory:"
+
+
+def test_create_and_list_events() -> None:
+    app = create_app(Settings(database_url="sqlite:///:memory:", cache_ttl_seconds=1, max_page_size=2))
+    app.create_event({"json": {"name": "first"}})
+    app.create_event({"json": {"name": "second"}})
+    response = app.list_events({"query": {"limit": "5"}})
+    assert len(response["events"]) == 2
+    assert response["events"][0]["payload"]["name"] == "second"

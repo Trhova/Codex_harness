@@ -1,0 +1,52 @@
+# RTK-style summaries for hpc_jobs
+
+$ rtk find . -type f
+dirs: README.md/ 1, docs/ 1, jobs/ 2, scripts/ 2
+ext: .md(2), .sbatch(2), .sh(2)
+sample: README.md, docs/operations.md, jobs/array_preprocess.sbatch, jobs/train_gpu.sbatch, scripts/common.sh, scripts/monitor.sh
+
+$ rtk grep 'sbatch|module|queue|gpu|memory|checkpoint|array' .
+README.md: 1 shown
+  L3: This fixture mimics a small repository of Slurm job scripts. It has shell utilities, job entry points, and operational n
+docs/operations.md: 2 shown
+  L3: Use the GPU partition only for training jobs. CPU preprocessing should run as a Slurm array so failed shards can be retr
+  L5: Checkpoints are written under `checkpoints/` and logs are written under `logs/`. When a queue is busy, submit preprocess
+jobs/array_preprocess.sbatch: 3 shown
+  L2: #SBATCH --job-name=preprocess-array
+  L3: #SBATCH --array=0-15
+  L4: #SBATCH --partition=cpu
+jobs/train_gpu.sbatch: 3 shown
+  L2: #SBATCH --job-name=city-train
+  L3: #SBATCH --partition=gpu
+  L4: #SBATCH --gres=gpu:1
+scripts/common.sh: 3 shown
+  L3: load_modules() {
+  L4: for module_name in "$@"; do
+  L5: module load "${module_name}"
+scripts/monitor.sh: 3 shown
+  L4: queue="${1:-$USER}"
+  L5: squeue --user "${queue}" --format="%.18i %.9P %.24j %.8T %.10M %.6D %R"
+  L8: grep -n "OutOfMemory\\|CANCELLED\\|checkpoint" logs/*.err || true
+
+# Graphify-style report for hpc_jobs
+
+Files: 6
+Extensions: .md:2, .sbatch:2, .sh:2
+
+## Communities
+- automation: 4 files (jobs/array_preprocess.sbatch, jobs/train_gpu.sbatch, scripts/common.sh, scripts/monitor.sh)
+- docs: 2 files (README.md, docs/operations.md)
+
+## Key Symbols
+- README.md: HPC Jobs Fixture
+- docs/operations.md: Operations Notes
+- scripts/common.sh: load_modules, prepare_workspace, submit_with_dependency
+
+## Imports and Entrypoints
+- jobs/array_preprocess.sbatch: source scripts/common.sh
+- jobs/train_gpu.sbatch: source scripts/common.sh
+
+## Suggested Next Reads
+- README.md
+- docs/operations.md
+- jobs/array_preprocess.sbatch

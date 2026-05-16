@@ -1,26 +1,75 @@
 # Codex Harness
 
-> A practical guide and reversible setup harness for working well with Codex, RTK, and Graphify across local repositories.
+> A beginner-friendly Codex handbook plus a reversible RTK + Graphify setup harness.
 
-Codex Harness is both:
+This repo has two jobs:
 
-1. An installer that wires RTK and Graphify into a Codex-friendly workflow.
-2. A beginner-friendly guide for using Codex CLI, the Codex app/cloud workflow, project instructions, subagents, and token-efficient repository understanding.
+1. **Learn Codex:** what Codex is, how to use the CLI and app, how instructions work, and how to think about skills, MCP, plugins, and subagents.
+2. **Install the harness:** set up RTK and Graphify so Codex can understand repositories with less noisy context and with a clear rollback path.
 
-The goal is not to replace official Codex documentation. The goal is to give a working developer a repeatable setup, a rollback path, and concrete prompts they can copy into real projects.
+The repo is written for people who may be comfortable using a computer but are not yet comfortable with developer tooling, shells, configuration files, or AI agent vocabulary.
 
-## Contents
+## Start Here
 
-- [Who This Repo Is For](#who-this-repo-is-for)
-- [What This Harness Installs](#what-this-harness-installs)
-- [Start Here](#start-here)
-- [Repository Layout](#repository-layout)
-- [Codex Workflow Map](#codex-workflow-map)
-- [RTK + Graphify Mental Model](#rtk--graphify-mental-model)
-- [Useful Commands](#useful-commands)
-- [Official References](#official-references)
+| If you want to... | Read this first |
+| --- | --- |
+| Understand Codex from scratch | [Learn Codex](#part-1-learn-codex) |
+| Install RTK + Graphify | [Install the Harness](#part-2-install-the-harness) |
+| Copy commands | [Useful Commands](#useful-commands) |
+| Undo the setup | [Rollback Guide](docs/rollback.md) |
 
-## Who This Repo Is For
+```mermaid
+flowchart LR
+    A[Learn Codex] --> B[Use Codex on a repo]
+    B --> C[Install Harness]
+    C --> D[RTK: shorter command output]
+    C --> E[Graphify: repo map]
+    D --> F[Lower-noise Codex sessions]
+    E --> F
+```
+
+## Part 1: Learn Codex
+
+Codex is a coding agent: you give it a software task, and it can inspect files, edit code, run commands, explain tradeoffs, and help verify the result.
+
+You do not need to understand every internal term before using it. Start with the basic loop:
+
+1. Open a repository.
+2. Explain the goal and constraints.
+3. Let Codex inspect the code.
+4. Review what it changes.
+5. Run tests or checks.
+6. Commit when the result is good.
+
+| Beginner topic | Plain meaning | Guide |
+| --- | --- | --- |
+| Codex CLI | Codex in your terminal, working on local files. | [Codex CLI](docs/codex-cli.md) |
+| Codex app/cloud | Codex working through the app or cloud task flow. | [Codex App and Cloud](docs/codex-app-cloud.md) |
+| `AGENTS.md` | A note to Codex explaining how this repo works. | [Settings](docs/settings.md) |
+| Skills | Reusable instructions for repeatable work. | [Concepts](docs/concepts.md) |
+| MCP | A standard way for tools and data sources to connect to Codex. | [Concepts](docs/concepts.md) |
+| Plugins | Bundled integrations that may provide skills, tools, or connectors. | [Concepts](docs/concepts.md) |
+| Subagents | Extra agents working on separate tasks in parallel. | [Prompt Examples](docs/prompts.md) |
+| Approvals/sandboxing | Safety controls for commands, files, and network access. | [Settings](docs/settings.md) |
+
+### A Good First Prompt
+
+```text
+Read the README and explain how this repo is organized.
+Do not edit files yet.
+Tell me the safest first improvement to make.
+```
+
+### A Good Implementation Prompt
+
+```text
+Implement the approved README improvement.
+Before editing, list the files you will change.
+After editing, summarize the diff and commands run.
+Do not include secrets or private paths.
+```
+
+## Part 2: Install the Harness
 
 This repo is for people who want to:
 
@@ -32,9 +81,10 @@ This repo is for people who want to:
 | Use the Codex app/cloud workflow | [Codex App and Cloud](docs/codex-app-cloud.md) |
 | Configure Codex settings and instructions | [Settings](docs/settings.md) |
 | Spawn useful subagents | [Prompt Examples](docs/prompts.md) |
+| Explore future RTK/Graphify-adjacent tools | [Tooling Roadmap](docs/tooling-roadmap.md) |
 | Roll back the harness | [Rollback Guide](docs/rollback.md) |
 
-## What This Harness Installs
+### What This Harness Installs
 
 | Component | What it does |
 | --- | --- |
@@ -45,22 +95,7 @@ This repo is for people who want to:
 
 This harness can touch files outside this repo, especially `~/.codex/AGENTS.md`, `~/.codex/RTK.md`, `~/.codex/config.toml`, and activated project files. Read [Rollback](docs/rollback.md) before installing on a machine you care about.
 
-## Start Here
-
-```mermaid
-flowchart TD
-    A[Read this README] --> B[Read concepts]
-    B --> C[Bootstrap harness]
-    C --> D[Activate a target repo]
-    D --> E[Build Graphify report]
-    E --> F[Open target repo with Codex]
-    F --> G[Use RTK for noisy commands]
-    F --> H[Use subagents for parallel review]
-    G --> I[Commit project changes]
-    H --> I
-```
-
-Recommended reading path:
+Recommended harness reading path:
 
 1. [Concepts](docs/concepts.md)
 2. [Quickstart](docs/quickstart.md)
@@ -110,7 +145,7 @@ rtk git status
 rtk git diff
 rtk grep "function_or_setting"
 rtk find . -type f
-graphify update .
+/home/<user>/codex_harness/scripts/refresh_graph.sh /path/to/project
 ```
 
 Then ask Codex to start from:
