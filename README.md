@@ -11,19 +11,17 @@ This repo is written for people who may be comfortable using a computer but are 
 
 ## Safety First
 
-Codex is useful because it can read files, edit files, and run commands for you. Those same abilities mean you should give it a safe place to work.
+Codex can read files, edit files, and run commands, so give it a safe workspace.
 
-If you are new, the most practical default is usually:
+Good defaults:
 
 - work inside a Git repository
-- keep raw, private, or irreplaceable data outside that repository
+- keep raw data, secrets, and irreplaceable files outside that repository
 - commit or stash work before large changes
-- start with normal sandbox/approval settings
-- read approval prompts before allowing commands that write outside the project
+- use sandbox/approval settings while learning
+- read approval prompts before allowing commands outside the project
 
-On Windows, WSL2 is often the easiest and safest way to use terminal-based developer tools. It gives you a Linux environment with a clearer boundary than running everything directly in your personal Windows folders. It is not magic protection, but it makes the workflow closer to what most developer tooling expects.
-
-Git reduces risk because you can inspect diffs and roll back tracked code. It does not protect files that are not tracked, and it does not replace backups. There is always a small risk that any automation, including an AI agent, can damage files if it is pointed at the wrong directory or given too much permission. The balance we want is practical: let Codex help with code and docs, but do not put the only copy of raw data, credentials, or important personal files in its work area.
+On Windows, WSL2 is usually the easiest place to run terminal-based developer tools. Git helps because you can inspect diffs and roll back tracked files, but it is not a backup system.
 
 ## Start Here
 
@@ -76,18 +74,13 @@ Do not edit files yet.
 Tell me the safest first improvement to make.
 ```
 
-### A Good Implementation Prompt
-
-```text
-Implement the approved README improvement.
-Before editing, list the files you will change.
-After editing, summarize the diff and commands run.
-Do not include secrets or private paths.
-```
-
 ## Part 2: Install the Harness
 
-The harness part is for people who want Codex to spend less time reading noisy command output and repeatedly scanning the same files.
+The harness exists for one main reason: **feed Codex less junk**.
+
+Codex has limited useful context in each task. If it spends that context on huge file lists, raw logs, repeated `grep` output, vendored code, and broad scans, it has less room for the files and decisions that matter. RTK and Graphify help Codex start from compact summaries and a repository map, so it can spend fewer tokens getting oriented and more effort on the actual task.
+
+Use the harness when you want Codex to inspect a repo with less noisy context, clearer structure, and a rollback path for the setup.
 
 | Need | Where to go |
 | --- | --- |
