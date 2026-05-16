@@ -24,7 +24,7 @@ Give the same information you would give a senior engineer:
 
 ```text
 Goal:
-Make the harness docs beginner-friendly.
+Make the harness docs clear for new users.
 
 Constraints:
 - Do not change installer behavior.

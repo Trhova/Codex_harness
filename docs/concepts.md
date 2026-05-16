@@ -6,11 +6,11 @@ Codex is OpenAI's coding agent. In practice, that means you can give it a softwa
 
 Think of Codex as a junior-to-senior pair programmer whose usefulness depends on the context you give it. It can move quickly, but it still needs clear goals, boundaries, and verification steps.
 
-Good beginner tasks:
+Good starting tasks:
 
 - "Explain how this repository is organized."
 - "Find where this feature is implemented."
-- "Update this documentation page for beginners."
+- "Update this documentation page for new users."
 - "Fix this failing test and explain the change."
 - "Review this diff for bugs and missing tests."
 
@@ -25,7 +25,7 @@ Less good first tasks:
 
 Codex has several surfaces. Use the one that matches where the work should happen.
 
-| Surface | Use it when | Beginner mental model |
+| Surface | Use it when | Practical mental model |
 | --- | --- | --- |
 | Codex CLI | You want Codex working in a terminal on local files. | "Pair with Codex in this folder." |
 | Codex app | You want a desktop command center with threads, review, worktrees, and project actions. | "Manage several Codex tasks from one app." |
@@ -42,7 +42,7 @@ codex
 Then describe the goal, constraints, and checks:
 
 ```text
-Update docs/concepts.md so beginners understand Codex.
+Update docs/concepts.md so new users understand Codex.
 Keep the change documentation-only.
 Use official OpenAI docs language where possible.
 Run git diff --check when done.
@@ -50,7 +50,7 @@ Run git diff --check when done.
 
 For app or cloud work, write the same kind of task, but assume Codex may work in a separate thread or environment. Mention the repository, branch, setup commands, files to avoid, and how you want the result reviewed.
 
-## The Beginner Loop
+## The Working Loop
 
 Use this loop until it becomes natural:
 
@@ -117,7 +117,7 @@ Use a skill when you repeat a workflow often, such as:
 - using company-specific docs
 - applying a standard code review process
 
-Beginner mental model: `AGENTS.md` tells Codex how to behave in this repo; a skill teaches Codex a repeatable workflow it can load when needed.
+Practical mental model: `AGENTS.md` tells Codex how to behave in this repo; a skill teaches Codex a repeatable workflow it can load when needed.
 
 ## MCP
 
@@ -138,7 +138,7 @@ Plugins package reusable Codex capabilities. A plugin can bundle skills, app int
 
 Use plugins when you want Codex to work with a larger tool or workflow, such as GitHub, Slack, Gmail, Google Drive, or a custom team workflow.
 
-Beginner mental model: a skill is the recipe; MCP is a tool connection; a plugin can bundle recipes and connections so they are easier to install and reuse.
+Practical mental model: a skill is the recipe; MCP is a tool connection; a plugin can bundle recipes and connections so they are easier to install and reuse.
 
 ## Subagents
 
@@ -151,7 +151,7 @@ Good subagent tasks:
 - one agent investigates docs
 - one agent reads logs while the main agent edits
 
-Be cautious with parallel editing. Multiple agents changing the same files can create conflicts and make review harder. For beginners, use subagents mostly for read-heavy investigation and review.
+Be cautious with parallel editing. Multiple agents changing the same files can create conflicts and make review harder. Use subagents mostly for read-heavy investigation and review until the write scopes are clear.
 
 Example prompt:
 
@@ -170,7 +170,7 @@ The sandbox is the technical boundary. It limits what Codex-run commands can acc
 
 Approvals are the human checkpoint. If Codex wants to do something outside the current permission boundary, it may ask before continuing.
 
-Beginner rules:
+Practical rules:
 
 - Start with the default permissions.
 - Read approval prompts before accepting them.

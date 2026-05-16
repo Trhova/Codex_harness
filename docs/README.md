@@ -4,7 +4,7 @@ Start here if you are turning this repo into your Codex working handbook.
 
 | Page | Teaches |
 | --- | --- |
-| [Concepts](concepts.md) | What Codex is, how to use it, and beginner explanations of CLI, app/cloud, AGENTS.md, skills, MCP, plugins, subagents, sandboxing, RTK, and Graphify. |
+| [Concepts](concepts.md) | What Codex is, how to use it, and practical explanations of CLI, app/cloud, AGENTS.md, skills, MCP, plugins, subagents, sandboxing, RTK, and Graphify. |
 | [Quickstart](quickstart.md) | Bootstrap, activate a repo, build a graph, and start using Codex. |
 | [Codex CLI](codex-cli.md) | Practical local CLI workflow. |
 | [Codex App and Cloud](codex-app-cloud.md) | How to think about app/cloud workflows. |

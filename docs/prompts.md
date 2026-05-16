@@ -10,10 +10,10 @@ Use RTK for noisy commands.
 ## Documentation Review With Subagents
 
 ```text
-Use 5 subagents to review this repo as a beginner-friendly Codex guide.
+Use 5 subagents to review this repo as a practical Codex guide.
 Do not edit files yet.
 
-Agent 1: beginner onboarding and README clarity.
+Agent 1: onboarding and README clarity.
 Agent 2: installer and rollback safety.
 Agent 3: Codex CLI/app workflow guidance.
 Agent 4: RTK + Graphify token-usage guidance.

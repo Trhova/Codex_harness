@@ -38,7 +38,7 @@ Prompt:
 
 ```text
 Use 4 subagents.
-Agent 1 reviews docs for beginners.
+Agent 1 reviews docs for onboarding clarity.
 Agent 2 reviews installer safety.
 Agent 3 reviews rollback completeness.
 Agent 4 reviews command examples.

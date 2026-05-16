@@ -1,6 +1,6 @@
 # Tooling Roadmap
 
-This page tracks tools that could complement RTK and Graphify. The default harness should stay small, reversible, and beginner-friendly; these are candidates for optional recipes or experiments.
+This page tracks tools that could complement RTK and Graphify. The default harness should stay small, reversible, and easy to explain; these are candidates for optional recipes or experiments.
 
 ## Best Next Candidates
 
@@ -20,11 +20,11 @@ This page tracks tools that could complement RTK and Graphify. The default harne
 | Tool | Why it is useful | Why it is not a default harness dependency |
 | --- | --- | --- |
 | [Aider repo-map](https://aider.chat/docs/repomap.html) | Proven tree-sitter/PageRank-style context strategy. | Aider is another coding agent; this harness should learn from the idea without installing a parallel agent by default. |
-| [Sourcegraph Code Search](https://sourcegraph.com/docs/code-search/features) | Excellent organization-scale code search. | Too heavy for a local beginner harness; Zoekt captures the lighter local search core. |
+| [Sourcegraph Code Search](https://sourcegraph.com/docs/code-search/features) | Excellent organization-scale code search. | Too heavy for a local harness; Zoekt captures the lighter local search core. |
 | [OpenGrok](https://github.com/oracle/opengrok) | Mature source browser and cross-reference system. | Server-heavy and optimized for human browsing more than Codex context management. |
 | [CodeQL](https://codeql.github.com/docs/codeql-overview/about-codeql/) | Powerful semantic/security analysis. | Valuable for security workflows, but too specialized for default Codex onboarding. |
 | [Kythe](https://kythe.io/docs/kythe-overview.html) / [SCIP](https://sourcegraph.com/docs/code-search/code-navigation/writing_an_indexer) | Serious code-intelligence formats. | Too much indexing and build-system complexity for this repo's current goals. |
-| [Nix flakes](https://nix.dev/concepts/flakes.html) / [Devbox](https://github.com/jetify-com/devbox) | Reproducible development environments. | Powerful, but higher conceptual overhead than `mise` for the target beginner audience. |
+| [Nix flakes](https://nix.dev/concepts/flakes.html) / [Devbox](https://github.com/jetify-com/devbox) | Reproducible development environments. | Powerful, but higher conceptual overhead than `mise` for the target audience. |
 
 ## Suggested Experiments
 
@@ -37,6 +37,6 @@ This page tracks tools that could complement RTK and Graphify. The default harne
 
 Add a tool only if it passes all three checks:
 
-1. It reduces context noise or setup friction in a way beginners can understand.
+1. It reduces context noise or setup friction in a way users can understand.
 2. It can be installed or activated reversibly.
 3. It does not duplicate Codex itself or make the default workflow harder to explain.

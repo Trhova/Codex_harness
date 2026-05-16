@@ -1,13 +1,13 @@
 # Codex Harness
 
-> A beginner-friendly Codex handbook plus a reversible RTK + Graphify setup harness.
+> A practical Codex handbook plus a reversible RTK + Graphify setup harness.
 
 This repo has two jobs:
 
 1. **Learn Codex:** what it is, how to use it, and what common words like skills, MCP, plugins, and subagents mean.
 2. **Install the harness:** set up RTK and Graphify so Codex can inspect repositories with less noisy context and a clear rollback path.
 
-This repo is written for people who may be comfortable using a computer but are still new to developer tools, terminals, configuration files, or AI agent vocabulary.
+This repo is written for people who want a clear operating model for Codex, from everyday use through a more structured RTK + Graphify setup.
 
 ## Safety First
 
@@ -27,7 +27,7 @@ On Windows, WSL2 is usually the easiest place to run terminal-based developer to
 
 | If you want to... | Read this first |
 | --- | --- |
-| Understand Codex from scratch | [Learn Codex](#part-1-learn-codex) |
+| Understand Codex concepts | [Learn Codex](#part-1-learn-codex) |
 | Install RTK + Graphify | [Install the Harness](#part-2-install-the-harness) |
 | Copy commands | [Useful Commands](#useful-commands) |
 | Undo the setup | [Rollback Guide](docs/rollback.md) |
@@ -55,16 +55,16 @@ You do not need to learn every term before using it. Start with this loop:
 5. Run tests or checks.
 6. Commit when the result is good.
 
-| Beginner topic | Plain meaning | Guide |
-| --- | --- | --- |
-| Codex CLI | Codex running in a terminal on your machine. | [Codex CLI](docs/codex-cli.md) |
-| Codex app/cloud | Codex working through an app or remote task flow. | [Codex App and Cloud](docs/codex-app-cloud.md) |
-| `AGENTS.md` | A note that tells Codex how this repo should be handled. | [Settings](docs/settings.md) |
-| Skills | Reusable instructions for repeatable work. | [Concepts](docs/concepts.md) |
-| MCP | A way to connect Codex to extra tools and data sources. | [Concepts](docs/concepts.md) |
-| Plugins | Bundled integrations that may provide skills, tools, or connectors. | [Concepts](docs/concepts.md) |
-| Subagents | Extra agents that can work on separate tasks in parallel. | [Prompt Examples](docs/prompts.md) |
-| Approvals/sandboxing | Safety controls for commands, files, and network access. | [Settings](docs/settings.md) |
+| Concept | What it means in practice | When it makes sense | Guide |
+| --- | --- | --- | --- |
+| Codex CLI | Codex running in a terminal against files on your machine or remote shell. It can inspect the repo, edit files, run commands, and report what changed. | Use it for local development, focused repo edits, tests, refactors, documentation work, and iterative debugging. | [Codex CLI](docs/codex-cli.md) |
+| Codex app/cloud | Codex running through an app or hosted task flow rather than only your local terminal. | Use it for longer-running tasks, PR-oriented work, or work you want to delegate and review outside an active shell session. | [Codex App and Cloud](docs/codex-app-cloud.md) |
+| `AGENTS.md` | Repo instructions that Codex reads before working in that repository. The model should follow the commands, style rules, safety rules, and repo-specific workflow written there. | Use it when a repo has stable conventions: test commands, formatting rules, architecture notes, generated-file warnings, or instructions like “read Graphify first.” | [Settings](docs/settings.md) |
+| Skills | Reusable instruction packs for tasks you want done the same way each time. A skill can include a `SKILL.md`, references, scripts, and templates. | Use skills for repeatable workflows that need precision: polishing a deck, reviewing a PR, creating a plugin, checking official OpenAI docs, or following a lab/team process. | [Concepts](docs/concepts.md) |
+| MCP | Model Context Protocol: a way to connect Codex to external tools, data sources, or structured APIs through an MCP server. | Use MCP when Codex needs controlled access to something outside the repo, such as docs, browser automation, design files, databases, or internal systems. | [Concepts](docs/concepts.md) |
+| Plugins | Bundles that can package skills, MCP setup, connectors, and app integrations. | Use plugins when a workflow needs several capabilities together, such as GitHub review tools plus related skills, or a team integration with its own commands and context. | [Concepts](docs/concepts.md) |
+| Subagents | Additional agents that can work on separate, bounded tasks in parallel. | Use subagents for independent review or implementation slices: one agent checks docs, another checks scripts, another checks experiments. Keep write scopes separate. | [Prompt Examples](docs/prompts.md) |
+| Approvals/sandboxing | Controls for what Codex can read, write, run, or access over the network. | Use stricter settings when exploring unfamiliar repos, protecting data, or letting Codex run commands you have not reviewed yet. | [Settings](docs/settings.md) |
 
 ### A Good First Prompt
 
@@ -95,14 +95,15 @@ Use the harness when you want Codex to inspect a repo with less noisy context, c
 
 ### What This Harness Installs
 
-| Component | What it does |
-| --- | --- |
-| RTK | Makes noisy command output shorter and easier for Codex to read. |
-| Graphify | Builds a repository map so Codex can start from structure instead of guessing where to look. |
-| Codex instructions | Adds reusable guidance in `AGENTS.md` and RTK docs so Codex knows when to use RTK and Graphify. |
-| Rollback manifest | Records touched files and backups in `manifests/changes.json` and `state/backups/`. |
+| Component | Scope | What it does |
+| --- | --- | --- |
+| RTK binary | Global for your shell after install | Adds `rtk` to your PATH so any repo can use compact command summaries. |
+| Graphify Python environment | Harness-local install | Installs Graphify inside this repo's `.venv`; the wrapper scripts use that environment to build or refresh graphs. |
+| Global Codex guidance | Global Codex config area | Can update files under `~/.codex/`, such as `AGENTS.md`, `RTK.md`, and `config.toml`, so Codex knows RTK/Graphify exist. |
+| Project activation | Per target repository | Adds or updates repo-specific Codex/Graphify files such as `AGENTS.md`, `.codex/hooks.json`, and `graphify-out/` in the project you activate. |
+| Rollback manifest | Harness-local state | Records touched files and backups in `manifests/changes.json` and `state/backups/`. |
 
-This harness can touch files outside this repo, especially `~/.codex/AGENTS.md`, `~/.codex/RTK.md`, `~/.codex/config.toml`, and activated project files. Read [Rollback](docs/rollback.md) before installing on a machine you care about.
+The installer is not purely project-local. `install.sh` prepares global shell/Codex support, while `activate.sh /path/to/project` applies project-specific guidance to one target repo. Read [Rollback](docs/rollback.md) before installing on a machine you care about.
 
 Recommended harness reading path:
 
@@ -126,7 +127,7 @@ Recommended harness reading path:
 | `scripts/deactivate.sh` | Restores files for one activated target repo. |
 | `scripts/uninstall.sh` | Restores bootstrap files and removes harness-installed artifacts. |
 | `templates/` | Instruction templates used by the harness and by humans reviewing behavior. |
-| `docs/` | Beginner-friendly Codex, RTK, Graphify, subagent, and rollback guides. |
+| `docs/` | Practical Codex, RTK, Graphify, subagent, and rollback guides. |
 | `manifests/changes.json` | Machine-local record of harness-managed changes. |
 | `vendor/` | RTK and Graphify source checkouts. |
 
