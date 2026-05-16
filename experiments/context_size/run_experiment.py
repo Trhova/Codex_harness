@@ -5,6 +5,7 @@ import ast
 import csv
 import json
 import re
+import statistics
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,6 +23,20 @@ DEFAULT_SEARCH_PATTERNS = {
     "three_d_city": "scene|camera|building|traffic|render|geometry|control",
 }
 TOKENIZER = "o200k_base"
+FAMILY_ORDER = [
+    "Frontend / 3D",
+    "Backend / data",
+    "Ops / HPC",
+    "Docs-heavy",
+    "Original smoke fixtures",
+]
+FAMILY_COLORS = {
+    "Frontend / 3D": "#2563eb",
+    "Backend / data": "#059669",
+    "Ops / HPC": "#d97706",
+    "Docs-heavy": "#7c3aed",
+    "Original smoke fixtures": "#475569",
+}
 
 
 @dataclass(frozen=True)
@@ -58,6 +73,32 @@ def scenario_dirs() -> list[Path]:
 
 def scenario_id(scenario: Path) -> str:
     return scenario.relative_to(SCENARIOS).as_posix().replace("/", "__")
+
+
+def scenario_family(name: str) -> str:
+    if name.startswith("frontend_replicates__"):
+        return "Frontend / 3D"
+    if name.startswith("backend_replicates__"):
+        return "Backend / data"
+    if name.startswith("ops_replicates__"):
+        return "Ops / HPC"
+    if name.startswith("docs_replicates__"):
+        return "Docs-heavy"
+    return "Original smoke fixtures"
+
+
+def scenario_label(name: str) -> str:
+    label = name
+    for prefix in (
+        "frontend_replicates__",
+        "backend_replicates__",
+        "ops_replicates__",
+        "docs_replicates__",
+    ):
+        if label.startswith(prefix):
+            label = label.removeprefix(prefix)
+            break
+    return label.replace("_", " ")
 
 
 def scenario_pattern(scenario: Path) -> re.Pattern[str]:
@@ -233,49 +274,89 @@ def harness_transcript(scenario: Path, files: list[TextFile]) -> str:
     return rtk_style_summary(scenario, files) + "\n" + graphify_style_report(scenario, files)
 
 
-def write_svg(rows: list[dict[str, object]], path: Path) -> None:
-    width = 920
-    height = 360
-    margin_left = 130
-    margin_bottom = 70
-    plot_width = width - margin_left - 40
-    plot_height = height - 80 - margin_bottom
-    max_value = max(max(int(row["baseline_tokens"]), int(row["harness_tokens"])) for row in rows)
-    group_width = plot_width / len(rows)
-    bar_width = 34
+def family_summaries(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    summaries: list[dict[str, object]] = []
+    for family in FAMILY_ORDER:
+        grouped = [row for row in rows if row["family"] == family]
+        if not grouped:
+            continue
+        baseline = sum(int(row["baseline_tokens"]) for row in grouped)
+        harness = sum(int(row["harness_tokens"]) for row in grouped)
+        reductions = [-float(row["token_delta_percent"]) for row in grouped]
+        summaries.append(
+            {
+                "family": family,
+                "replicates": len(grouped),
+                "baseline_tokens": baseline,
+                "harness_tokens": harness,
+                "overall_reduction_percent": round((1 - harness / baseline) * 100, 1),
+                "median_reduction_percent": round(statistics.median(reductions), 1),
+                "min_reduction_percent": round(min(reductions), 1),
+                "max_reduction_percent": round(max(reductions), 1),
+            }
+        )
+    return summaries
 
+
+def write_family_summary(rows: list[dict[str, object]], path: Path) -> None:
+    summaries = family_summaries(rows)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(summaries[0].keys()), lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(summaries)
+
+
+def write_reduction_svg(rows: list[dict[str, object]], path: Path) -> None:
+    ordered_rows: list[dict[str, object]] = []
+    for family in FAMILY_ORDER:
+        grouped = [row for row in rows if row["family"] == family]
+        ordered_rows.extend(sorted(grouped, key=lambda row: -float(row["reduction_percent"])))
+
+    width = 1120
+    row_height = 34
+    header_height = 122
+    footer_height = 76
+    height = header_height + row_height * len(ordered_rows) + footer_height
+    label_x = 270
+    plot_x = 285
+    plot_width = 690
+    max_percent = 85
+    total_baseline = sum(int(row["baseline_tokens"]) for row in rows)
+    total_harness = sum(int(row["harness_tokens"]) for row in rows)
+    overall = (1 - total_harness / total_baseline) * 100
+    median = statistics.median(float(row["reduction_percent"]) for row in rows)
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
-        '<rect width="100%" height="100%" fill="#ffffff"/>',
-        '<text x="24" y="34" font-family="Arial, sans-serif" font-size="20" font-weight="700">Measured transcript tokens by workflow</text>',
-        f'<text x="24" y="58" font-family="Arial, sans-serif" font-size="12" fill="#555">tokenizer: {TOKENIZER} via tiktoken</text>',
-        f'<line x1="{margin_left}" y1="{height - margin_bottom}" x2="{width - 40}" y2="{height - margin_bottom}" stroke="#333"/>',
-        f'<line x1="{margin_left}" y1="80" x2="{margin_left}" y2="{height - margin_bottom}" stroke="#333"/>',
+        '<rect width="100%" height="100%" rx="0" fill="#f8fafc"/>',
+        '<text x="28" y="40" font-family="Arial, sans-serif" font-size="23" font-weight="700" fill="#0f172a">Context reduction from Codex Harness workflow</text>',
+        f'<text x="28" y="68" font-family="Arial, sans-serif" font-size="13" fill="#475569">14 replicated fixtures, tokenizer={TOKENIZER} via tiktoken. Bars show fewer transcript tokens with RTK-style summaries + Graphify-style structure.</text>',
+        f'<text x="28" y="104" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#0f172a">{overall:.1f}%</text>',
+        '<text x="106" y="104" font-family="Arial, sans-serif" font-size="13" fill="#475569">overall reduction</text>',
+        f'<text x="252" y="104" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#0f172a">{median:.1f}%</text>',
+        '<text x="330" y="104" font-family="Arial, sans-serif" font-size="13" fill="#475569">median replicate reduction</text>',
     ]
-    for i in range(5):
-        value = round(max_value * i / 4)
-        y = height - margin_bottom - (value / max_value * plot_height if max_value else 0)
-        parts.append(f'<line x1="{margin_left}" y1="{y:.1f}" x2="{width - 40}" y2="{y:.1f}" stroke="#e6e6e6"/>')
-        parts.append(f'<text x="{margin_left - 12}" y="{y + 4:.1f}" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#555">{value}</text>')
+    for tick in range(0, 81, 20):
+        x = plot_x + (tick / max_percent) * plot_width
+        parts.append(f'<line x1="{x:.1f}" y1="{header_height - 8}" x2="{x:.1f}" y2="{height - footer_height + 8}" stroke="#e2e8f0"/>')
+        parts.append(f'<text x="{x:.1f}" y="{height - footer_height + 34}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">{tick}%</text>')
 
-    for index, row in enumerate(rows):
-        base = int(row["baseline_tokens"])
-        harness = int(row["harness_tokens"])
-        center = margin_left + group_width * index + group_width / 2
-        for offset, value, color in [(-bar_width / 2 - 3, base, "#4c78a8"), (bar_width / 2 + 3, harness, "#f58518")]:
-            bar_height = value / max_value * plot_height if max_value else 0
-            x = center + offset - bar_width / 2
-            y = height - margin_bottom - bar_height
-            parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_width}" height="{bar_height:.1f}" fill="{color}"/>')
-            parts.append(f'<text x="{x + bar_width / 2:.1f}" y="{y - 5:.1f}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11">{value}</text>')
-        label = str(row["scenario"]).replace("_", " ")
-        parts.append(f'<text x="{center:.1f}" y="{height - 42}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">{label}</text>')
-
+    y = header_height
+    current_family = None
+    for row in ordered_rows:
+        family = str(row["family"])
+        if family != current_family:
+            current_family = family
+            parts.append(f'<text x="28" y="{y + 20}" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="{FAMILY_COLORS[family]}">{family}</text>')
+        reduction = float(row["reduction_percent"])
+        bar_width = (reduction / max_percent) * plot_width
+        bar_y = y + 7
+        color = FAMILY_COLORS[family]
+        parts.append(f'<text x="{label_x}" y="{y + 21}" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#334155">{row["label"]}</text>')
+        parts.append(f'<rect x="{plot_x}" y="{bar_y}" width="{bar_width:.1f}" height="20" rx="5" fill="{color}"/>')
+        parts.append(f'<text x="{plot_x + bar_width + 8:.1f}" y="{y + 22}" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#0f172a">{reduction:.1f}%</text>')
+        y += row_height
     parts.extend([
-        '<rect x="700" y="24" width="14" height="14" fill="#4c78a8"/>',
-        '<text x="720" y="36" font-family="Arial, sans-serif" font-size="12">without harness</text>',
-        '<rect x="700" y="44" width="14" height="14" fill="#f58518"/>',
-        '<text x="720" y="56" font-family="Arial, sans-serif" font-size="12">with harness</text>',
+        f'<text x="{plot_x}" y="{height - 18}" font-family="Arial, sans-serif" font-size="12" fill="#64748b">Measured on generated context-gathering transcripts, not private Codex billing telemetry.</text>',
         "</svg>",
     ])
     path.write_text("\n".join(parts) + "\n", encoding="utf-8")
@@ -287,20 +368,27 @@ def write_png_if_possible(rows: list[dict[str, object]], path: Path) -> bool:
     except Exception:
         return False
 
-    labels = [str(row["scenario"]).replace("_", " ") for row in rows]
-    baseline = [int(row["baseline_tokens"]) for row in rows]
-    harness = [int(row["harness_tokens"]) for row in rows]
-    positions = range(len(rows))
-    width = 0.36
+    ordered_rows: list[dict[str, object]] = []
+    for family in FAMILY_ORDER:
+        ordered_rows.extend(sorted([row for row in rows if row["family"] == family], key=lambda row: -float(row["reduction_percent"])))
+    labels = [str(row["label"]) for row in ordered_rows]
+    reductions = [float(row["reduction_percent"]) for row in ordered_rows]
+    colors = [FAMILY_COLORS[str(row["family"])] for row in ordered_rows]
 
-    fig, ax = plt.subplots(figsize=(8.5, 4.2))
-    ax.bar([pos - width / 2 for pos in positions], baseline, width, label="without harness", color="#4c78a8")
-    ax.bar([pos + width / 2 for pos in positions], harness, width, label="with harness", color="#f58518")
-    ax.set_title("Measured transcript tokens by workflow")
-    ax.set_ylabel("tokens")
-    ax.set_xticks(list(positions), labels)
-    ax.legend()
-    ax.text(0.01, -0.18, f"tokenizer: {TOKENIZER} via tiktoken", transform=ax.transAxes, fontsize=9)
+    fig, ax = plt.subplots(figsize=(10.5, 7.2))
+    ax.barh(labels, reductions, color=colors)
+    ax.invert_yaxis()
+    ax.set_title("Context reduction from Codex Harness workflow")
+    ax.set_xlabel("fewer measured transcript tokens (%)")
+    ax.set_xlim(0, 85)
+    ax.grid(axis="x", color="#e2e8f0")
+    for y_pos, value in enumerate(reductions):
+        ax.text(value + 1, y_pos, f"{value:.1f}%", va="center", fontsize=9)
+    total_baseline = sum(int(row["baseline_tokens"]) for row in rows)
+    total_harness = sum(int(row["harness_tokens"]) for row in rows)
+    overall = (1 - total_harness / total_baseline) * 100
+    median = statistics.median(reductions)
+    ax.text(0.0, -0.12, f"Overall: {overall:.1f}% fewer transcript tokens. Median replicate: {median:.1f}%. Tokenizer: {TOKENIZER}.", transform=ax.transAxes, fontsize=9)
     fig.tight_layout()
     fig.savefig(path, dpi=160)
     plt.close(fig)
@@ -325,6 +413,8 @@ def run() -> list[dict[str, object]]:
         rows.append(
             {
                 "scenario": name,
+                "family": scenario_family(name),
+                "label": scenario_label(name),
                 "tokenizer": TOKENIZER,
                 "files": len(files),
                 "baseline_chars": len(baseline),
@@ -332,6 +422,7 @@ def run() -> list[dict[str, object]]:
                 "baseline_tokens": baseline_tokens,
                 "harness_tokens": harness_tokens,
                 "token_delta": harness_tokens - baseline_tokens,
+                "reduction_percent": round((1 - harness_tokens / baseline_tokens) * 100, 1),
                 "token_delta_percent": round((harness_tokens - baseline_tokens) / baseline_tokens * 100, 1),
             }
         )
@@ -341,8 +432,9 @@ def run() -> list[dict[str, object]]:
         writer.writeheader()
         writer.writerows(rows)
     (RESULTS / "summary.json").write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
-    write_svg(rows, RESULTS / "token_proxy_bar.svg")
-    write_png_if_possible(rows, RESULTS / "token_proxy_bar.png")
+    write_family_summary(rows, RESULTS / "family_summary.csv")
+    write_reduction_svg(rows, RESULTS / "context_reduction_by_family.svg")
+    write_png_if_possible(rows, RESULTS / "context_reduction_by_family.png")
     return rows
 
 

@@ -15,37 +15,28 @@ Summary:
 - Total baseline transcript tokens: 27,541
 - Total harness-style transcript tokens: 10,254
 - Overall measured reduction: 62.8%
-- Median per-fixture reduction: 57.3%
+- Median per-fixture reduction: 57.2%
 - Reduction range: 23.6% to 78.5%
 
-| Scenario | Without harness | With harness | Reduction |
-| --- | ---: | ---: | ---: |
-| `backend_replicates__billing_api` | 2,288 | 810 | 64.6% fewer |
-| `backend_replicates__session_gateway` | 1,705 | 748 | 56.1% fewer |
-| `backend_replicates__warehouse_etl` | 1,886 | 784 | 58.4% fewer |
-| `docs_replicates__onboarding_handbook` | 854 | 604 | 29.3% fewer |
-| `docs_replicates__policy_process` | 792 | 605 | 23.6% fewer |
-| `frontend_replicates__collab_canvas_board` | 3,298 | 863 | 73.8% fewer |
-| `frontend_replicates__material_lab_configurator` | 2,578 | 757 | 70.6% fewer |
-| `frontend_replicates__metro_ops_3d` | 3,904 | 840 | 78.5% fewer |
-| `hpc_jobs` | 1,190 | 613 | 48.5% fewer |
-| `ops_replicates__ci_deploy_rollout` | 1,436 | 667 | 53.6% fewer |
-| `ops_replicates__hpc_batch_pipeline` | 2,603 | 967 | 62.9% fewer |
-| `ops_replicates__storage_quota_recovery` | 1,327 | 605 | 54.4% fewer |
-| `python_service` | 1,617 | 717 | 55.7% fewer |
-| `three_d_city` | 2,063 | 674 | 67.3% fewer |
+![Context reduction by fixture family](results/context_reduction_by_family.svg)
+
+The full per-scenario data is in [summary.csv](results/summary.csv). Family-level rollups are in [family_summary.csv](results/family_summary.csv).
 
 ## Scenarios
 
-The fixtures under `scenarios/` are small local codebases:
+The fixtures under `scenarios/` are small local codebases. The current design uses replicated scenario families:
 
-| Scenario | Purpose |
+| Family | Replicates | Purpose |
 | --- | --- |
-| `python_service` | API/service layout with tests and docs. |
-| `hpc_jobs` | Shell-oriented HPC job scripts and cluster docs. |
-| `three_d_city` | Small Three.js-style city scene with buildings, traffic, and controls. |
+| Frontend / 3D | 3 | UI-heavy codebases, including a richer 3D city operations dashboard. |
+| Backend / data | 3 | APIs, auth/session logic, and ETL/data-processing code. |
+| Ops / HPC | 3 | Batch jobs, CI/deploy workflows, quota recovery, logs, and runbooks. |
+| Docs-heavy | 2 | Documentation-dominant repos where less raw code can be compressed. |
+| Original smoke fixtures | 3 | Earlier Python service, HPC jobs, and simple 3D city scenarios. |
 
 Each scenario has enough structure to make broad raw scans noisy while still being small enough to audit.
+
+Each new replicate has a `scenario.json` file with the search pattern used by the experiment. That makes the retrieval task explicit instead of relying on hidden choices in the runner.
 
 ## What Is Compared
 
@@ -76,8 +67,9 @@ Outputs are written to `experiments/context_size/results/`:
 
 - `summary.csv`
 - `summary.json`
-- `token_proxy_bar.svg`
-- `token_proxy_bar.png` if `matplotlib` is installed
+- `family_summary.csv`
+- `context_reduction_by_family.svg`
+- `context_reduction_by_family.png` if `matplotlib` is installed
 - `transcripts/*.txt`
 
 ## What "Measured Tokens" Means

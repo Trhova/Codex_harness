@@ -1,15 +1,15 @@
-scenario,tokenizer,files,baseline_chars,harness_chars,baseline_tokens,harness_tokens,token_delta,token_delta_percent
-backend_replicates__billing_api,o200k_base,10,9967,3159,2288,810,-1478,-64.6
-backend_replicates__session_gateway,o200k_base,10,7406,2861,1705,748,-957,-56.1
-backend_replicates__warehouse_etl,o200k_base,12,7681,2793,1886,784,-1102,-58.4
-docs_replicates__onboarding_handbook,o200k_base,6,3876,2285,854,604,-250,-29.3
-docs_replicates__policy_process,o200k_base,6,3422,2208,792,605,-187,-23.6
-frontend_replicates__collab_canvas_board,o200k_base,12,11477,2935,3298,863,-2435,-73.8
-frontend_replicates__material_lab_configurator,o200k_base,10,9462,2619,2578,757,-1821,-70.6
-frontend_replicates__metro_ops_3d,o200k_base,11,13763,2876,3904,840,-3064,-78.5
-hpc_jobs,o200k_base,6,4206,1993,1190,613,-577,-48.5
-ops_replicates__ci_deploy_rollout,o200k_base,7,5481,2201,1436,667,-769,-53.6
-ops_replicates__hpc_batch_pipeline,o200k_base,9,10031,3432,2603,967,-1636,-62.9
-ops_replicates__storage_quota_recovery,o200k_base,5,5216,2136,1327,605,-722,-54.4
-python_service,o200k_base,7,6847,2639,1617,717,-900,-55.7
-three_d_city,o200k_base,7,7255,2248,2063,674,-1389,-67.3
+scenario,family,label,tokenizer,files,baseline_chars,harness_chars,baseline_tokens,harness_tokens,token_delta,reduction_percent,token_delta_percent
+backend_replicates__billing_api,Backend / data,billing api,o200k_base,10,9967,3159,2288,810,-1478,64.6,-64.6
+backend_replicates__session_gateway,Backend / data,session gateway,o200k_base,10,7406,2861,1705,748,-957,56.1,-56.1
+backend_replicates__warehouse_etl,Backend / data,warehouse etl,o200k_base,12,7681,2793,1886,784,-1102,58.4,-58.4
+docs_replicates__onboarding_handbook,Docs-heavy,onboarding handbook,o200k_base,6,3876,2285,854,604,-250,29.3,-29.3
+docs_replicates__policy_process,Docs-heavy,policy process,o200k_base,6,3422,2208,792,605,-187,23.6,-23.6
+frontend_replicates__collab_canvas_board,Frontend / 3D,collab canvas board,o200k_base,12,11477,2935,3298,863,-2435,73.8,-73.8
+frontend_replicates__material_lab_configurator,Frontend / 3D,material lab configurator,o200k_base,10,9462,2619,2578,757,-1821,70.6,-70.6
+frontend_replicates__metro_ops_3d,Frontend / 3D,metro ops 3d,o200k_base,11,13763,2876,3904,840,-3064,78.5,-78.5
+hpc_jobs,Original smoke fixtures,hpc jobs,o200k_base,6,4206,1993,1190,613,-577,48.5,-48.5
+ops_replicates__ci_deploy_rollout,Ops / HPC,ci deploy rollout,o200k_base,7,5481,2201,1436,667,-769,53.6,-53.6
+ops_replicates__hpc_batch_pipeline,Ops / HPC,hpc batch pipeline,o200k_base,9,10031,3432,2603,967,-1636,62.9,-62.9
+ops_replicates__storage_quota_recovery,Ops / HPC,storage quota recovery,o200k_base,5,5216,2136,1327,605,-722,54.4,-54.4
+python_service,Original smoke fixtures,python service,o200k_base,7,6847,2639,1617,717,-900,55.7,-55.7
+three_d_city,Original smoke fixtures,three d city,o200k_base,7,7255,2248,2063,674,-1389,67.3,-67.3

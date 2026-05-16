@@ -1,0 +1,6 @@
+family,replicates,baseline_tokens,harness_tokens,overall_reduction_percent,median_reduction_percent,min_reduction_percent,max_reduction_percent
+Frontend / 3D,3,9780,2460,74.8,73.8,70.6,78.5
+Backend / data,3,5879,2342,60.2,58.4,56.1,64.6
+Ops / HPC,3,5366,2239,58.3,54.4,53.6,62.9
+Docs-heavy,2,1646,1209,26.5,26.5,23.6,29.3
+Original smoke fixtures,3,4870,2004,58.9,55.7,48.5,67.3

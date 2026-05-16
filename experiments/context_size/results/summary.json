@@ -1,6 +1,8 @@
 [
   {
     "scenario": "backend_replicates__billing_api",
+    "family": "Backend / data",
+    "label": "billing api",
     "tokenizer": "o200k_base",
     "files": 10,
     "baseline_chars": 9967,
@@ -8,10 +10,13 @@
     "baseline_tokens": 2288,
     "harness_tokens": 810,
     "token_delta": -1478,
+    "reduction_percent": 64.6,
     "token_delta_percent": -64.6
   },
   {
     "scenario": "backend_replicates__session_gateway",
+    "family": "Backend / data",
+    "label": "session gateway",
     "tokenizer": "o200k_base",
     "files": 10,
     "baseline_chars": 7406,
@@ -19,10 +24,13 @@
     "baseline_tokens": 1705,
     "harness_tokens": 748,
     "token_delta": -957,
+    "reduction_percent": 56.1,
     "token_delta_percent": -56.1
   },
   {
     "scenario": "backend_replicates__warehouse_etl",
+    "family": "Backend / data",
+    "label": "warehouse etl",
     "tokenizer": "o200k_base",
     "files": 12,
     "baseline_chars": 7681,
@@ -30,10 +38,13 @@
     "baseline_tokens": 1886,
     "harness_tokens": 784,
     "token_delta": -1102,
+    "reduction_percent": 58.4,
     "token_delta_percent": -58.4
   },
   {
     "scenario": "docs_replicates__onboarding_handbook",
+    "family": "Docs-heavy",
+    "label": "onboarding handbook",
     "tokenizer": "o200k_base",
     "files": 6,
     "baseline_chars": 3876,
@@ -41,10 +52,13 @@
     "baseline_tokens": 854,
     "harness_tokens": 604,
     "token_delta": -250,
+    "reduction_percent": 29.3,
     "token_delta_percent": -29.3
   },
   {
     "scenario": "docs_replicates__policy_process",
+    "family": "Docs-heavy",
+    "label": "policy process",
     "tokenizer": "o200k_base",
     "files": 6,
     "baseline_chars": 3422,
@@ -52,10 +66,13 @@
     "baseline_tokens": 792,
     "harness_tokens": 605,
     "token_delta": -187,
+    "reduction_percent": 23.6,
     "token_delta_percent": -23.6
   },
   {
     "scenario": "frontend_replicates__collab_canvas_board",
+    "family": "Frontend / 3D",
+    "label": "collab canvas board",
     "tokenizer": "o200k_base",
     "files": 12,
     "baseline_chars": 11477,
@@ -63,10 +80,13 @@
     "baseline_tokens": 3298,
     "harness_tokens": 863,
     "token_delta": -2435,
+    "reduction_percent": 73.8,
     "token_delta_percent": -73.8
   },
   {
     "scenario": "frontend_replicates__material_lab_configurator",
+    "family": "Frontend / 3D",
+    "label": "material lab configurator",
     "tokenizer": "o200k_base",
     "files": 10,
     "baseline_chars": 9462,
@@ -74,10 +94,13 @@
     "baseline_tokens": 2578,
     "harness_tokens": 757,
     "token_delta": -1821,
+    "reduction_percent": 70.6,
     "token_delta_percent": -70.6
   },
   {
     "scenario": "frontend_replicates__metro_ops_3d",
+    "family": "Frontend / 3D",
+    "label": "metro ops 3d",
     "tokenizer": "o200k_base",
     "files": 11,
     "baseline_chars": 13763,
@@ -85,10 +108,13 @@
     "baseline_tokens": 3904,
     "harness_tokens": 840,
     "token_delta": -3064,
+    "reduction_percent": 78.5,
     "token_delta_percent": -78.5
   },
   {
     "scenario": "hpc_jobs",
+    "family": "Original smoke fixtures",
+    "label": "hpc jobs",
     "tokenizer": "o200k_base",
     "files": 6,
     "baseline_chars": 4206,
@@ -96,10 +122,13 @@
     "baseline_tokens": 1190,
     "harness_tokens": 613,
     "token_delta": -577,
+    "reduction_percent": 48.5,
     "token_delta_percent": -48.5
   },
   {
     "scenario": "ops_replicates__ci_deploy_rollout",
+    "family": "Ops / HPC",
+    "label": "ci deploy rollout",
     "tokenizer": "o200k_base",
     "files": 7,
     "baseline_chars": 5481,
@@ -107,10 +136,13 @@
     "baseline_tokens": 1436,
     "harness_tokens": 667,
     "token_delta": -769,
+    "reduction_percent": 53.6,
     "token_delta_percent": -53.6
   },
   {
     "scenario": "ops_replicates__hpc_batch_pipeline",
+    "family": "Ops / HPC",
+    "label": "hpc batch pipeline",
     "tokenizer": "o200k_base",
     "files": 9,
     "baseline_chars": 10031,
@@ -118,10 +150,13 @@
     "baseline_tokens": 2603,
     "harness_tokens": 967,
     "token_delta": -1636,
+    "reduction_percent": 62.9,
     "token_delta_percent": -62.9
   },
   {
     "scenario": "ops_replicates__storage_quota_recovery",
+    "family": "Ops / HPC",
+    "label": "storage quota recovery",
     "tokenizer": "o200k_base",
     "files": 5,
     "baseline_chars": 5216,
@@ -129,10 +164,13 @@
     "baseline_tokens": 1327,
     "harness_tokens": 605,
     "token_delta": -722,
+    "reduction_percent": 54.4,
     "token_delta_percent": -54.4
   },
   {
     "scenario": "python_service",
+    "family": "Original smoke fixtures",
+    "label": "python service",
     "tokenizer": "o200k_base",
     "files": 7,
     "baseline_chars": 6847,
@@ -140,10 +178,13 @@
     "baseline_tokens": 1617,
     "harness_tokens": 717,
     "token_delta": -900,
+    "reduction_percent": 55.7,
     "token_delta_percent": -55.7
   },
   {
     "scenario": "three_d_city",
+    "family": "Original smoke fixtures",
+    "label": "three d city",
     "tokenizer": "o200k_base",
     "files": 7,
     "baseline_chars": 7255,
@@ -151,6 +192,7 @@
     "baseline_tokens": 2063,
     "harness_tokens": 674,
     "token_delta": -1389,
+    "reduction_percent": 67.3,
     "token_delta_percent": -67.3
   }
 ]
