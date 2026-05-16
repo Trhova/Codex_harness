@@ -4,10 +4,26 @@
 
 This repo has two jobs:
 
-1. **Learn Codex:** what Codex is, how to use the CLI and app, how instructions work, and how to think about skills, MCP, plugins, and subagents.
-2. **Install the harness:** set up RTK and Graphify so Codex can understand repositories with less noisy context and with a clear rollback path.
+1. **Learn Codex:** what it is, how to use it, and what common words like skills, MCP, plugins, and subagents mean.
+2. **Install the harness:** set up RTK and Graphify so Codex can inspect repositories with less noisy context and a clear rollback path.
 
-The repo is written for people who may be comfortable using a computer but are not yet comfortable with developer tooling, shells, configuration files, or AI agent vocabulary.
+This repo is written for people who may be comfortable using a computer but are still new to developer tools, terminals, configuration files, or AI agent vocabulary.
+
+## Safety First
+
+Codex is useful because it can read files, edit files, and run commands for you. Those same abilities mean you should give it a safe place to work.
+
+If you are new, the most practical default is usually:
+
+- work inside a Git repository
+- keep raw, private, or irreplaceable data outside that repository
+- commit or stash work before large changes
+- start with normal sandbox/approval settings
+- read approval prompts before allowing commands that write outside the project
+
+On Windows, WSL2 is often the easiest and safest way to use terminal-based developer tools. It gives you a Linux environment with a clearer boundary than running everything directly in your personal Windows folders. It is not magic protection, but it makes the workflow closer to what most developer tooling expects.
+
+Git reduces risk because you can inspect diffs and roll back tracked code. It does not protect files that are not tracked, and it does not replace backups. There is always a small risk that any automation, including an AI agent, can damage files if it is pointed at the wrong directory or given too much permission. The balance we want is practical: let Codex help with code and docs, but do not put the only copy of raw data, credentials, or important personal files in its work area.
 
 ## Start Here
 
@@ -30,9 +46,9 @@ flowchart LR
 
 ## Part 1: Learn Codex
 
-Codex is a coding agent: you give it a software task, and it can inspect files, edit code, run commands, explain tradeoffs, and help verify the result.
+Codex is a coding assistant that can act on a repository. You give it a task, and it can inspect files, edit code, run commands, explain choices, and help check whether the result works.
 
-You do not need to understand every internal term before using it. Start with the basic loop:
+You do not need to learn every term before using it. Start with this loop:
 
 1. Open a repository.
 2. Explain the goal and constraints.
@@ -43,13 +59,13 @@ You do not need to understand every internal term before using it. Start with th
 
 | Beginner topic | Plain meaning | Guide |
 | --- | --- | --- |
-| Codex CLI | Codex in your terminal, working on local files. | [Codex CLI](docs/codex-cli.md) |
-| Codex app/cloud | Codex working through the app or cloud task flow. | [Codex App and Cloud](docs/codex-app-cloud.md) |
-| `AGENTS.md` | A note to Codex explaining how this repo works. | [Settings](docs/settings.md) |
+| Codex CLI | Codex running in a terminal on your machine. | [Codex CLI](docs/codex-cli.md) |
+| Codex app/cloud | Codex working through an app or remote task flow. | [Codex App and Cloud](docs/codex-app-cloud.md) |
+| `AGENTS.md` | A note that tells Codex how this repo should be handled. | [Settings](docs/settings.md) |
 | Skills | Reusable instructions for repeatable work. | [Concepts](docs/concepts.md) |
-| MCP | A standard way for tools and data sources to connect to Codex. | [Concepts](docs/concepts.md) |
+| MCP | A way to connect Codex to extra tools and data sources. | [Concepts](docs/concepts.md) |
 | Plugins | Bundled integrations that may provide skills, tools, or connectors. | [Concepts](docs/concepts.md) |
-| Subagents | Extra agents working on separate tasks in parallel. | [Prompt Examples](docs/prompts.md) |
+| Subagents | Extra agents that can work on separate tasks in parallel. | [Prompt Examples](docs/prompts.md) |
 | Approvals/sandboxing | Safety controls for commands, files, and network access. | [Settings](docs/settings.md) |
 
 ### A Good First Prompt
@@ -71,7 +87,7 @@ Do not include secrets or private paths.
 
 ## Part 2: Install the Harness
 
-This repo is for people who want to:
+The harness part is for people who want Codex to spend less time reading noisy command output and repeatedly scanning the same files.
 
 | Need | Where to go |
 | --- | --- |
@@ -88,8 +104,8 @@ This repo is for people who want to:
 
 | Component | What it does |
 | --- | --- |
-| RTK | Wraps noisy commands such as `git`, `grep`, `find`, and tests so Codex sees compact, readable output. |
-| Graphify | Builds repository maps under `graphify-out/` so Codex can start from a graph report instead of repeatedly scanning files. |
+| RTK | Makes noisy command output shorter and easier for Codex to read. |
+| Graphify | Builds a repository map so Codex can start from structure instead of guessing where to look. |
 | Codex instructions | Adds reusable guidance in `AGENTS.md` and RTK docs so Codex knows when to use RTK and Graphify. |
 | Rollback manifest | Records touched files and backups in `manifests/changes.json` and `state/backups/`. |
 
@@ -134,9 +150,9 @@ Recommended harness reading path:
 
 ## RTK + Graphify Mental Model
 
-Codex spends context on whatever you show it. Huge command output and repeated file scans waste that context.
+Codex has a limited working memory for each task. Huge command output and repeated file scans use that memory quickly.
 
-RTK helps by making commands produce summarized, model-readable output. Graphify helps by giving Codex a repository map before it opens raw files.
+RTK helps by making command output shorter. Graphify helps by giving Codex a map of the repository before it opens raw files.
 
 Use this default pattern in activated repositories:
 
@@ -156,26 +172,28 @@ Read graphify-out/GRAPH_REPORT.md first, then inspect only the files needed for 
 
 ## Measured Context Reduction
 
-We tested the harness idea with a reproducible experiment in [experiments/context_size](experiments/context_size/README.md). Four independent work streams created fixture codebases across frontend/3D, backend, ops/HPC, and docs-heavy tasks. The experiment compares two transcripts for each fixture:
+We tested the harness idea with a reproducible experiment in [experiments/context_size](experiments/context_size/README.md). The question was simple: if Codex starts from compact summaries and a repository map, how much less text does it need to read before it knows where to work?
+
+Four independent work streams created small fixture repositories across frontend/3D, backend, ops/HPC, and docs-heavy tasks. For each fixture, the script generates two text transcripts:
 
 | Workflow | What it simulates |
 | --- | --- |
-| Without harness | Raw recursive file listing, broad text search, and full text scans. |
-| With harness | RTK-style summaries plus a Graphify-style structural report before opening raw files. |
+| Without harness | A naive first pass: list many files, search broadly, and read full text. |
+| With harness | A guided first pass: compact command summaries plus a repository-structure report. |
 
-The experiment counts actual transcript tokens with `tiktoken` using the `o200k_base` tokenizer. It does not use private Codex telemetry and it does not measure billing tokens, accuracy, or elapsed time. It measures the amount of transcript text a Codex-like model would need to read for these controlled context-gathering workflows.
+The experiment counts actual transcript tokens with `tiktoken` using the `o200k_base` tokenizer. It does not use private Codex telemetry and it does not measure billing tokens, accuracy, or elapsed time. It measures the amount of text a Codex-like model would need to read in this controlled first-pass workflow.
 
 ![Context reduction by fixture family](experiments/context_size/results/context_reduction_by_family.svg)
 
 Across 14 fixtures, the harness-style transcript reduced measured tokens from 27,541 to 10,254 total tokens: **62.8% fewer measured transcript tokens overall**. The median per-fixture reduction was **57.2%**, with a range from **23.6%** on documentation-heavy fixtures to **78.5%** on the largest frontend/3D fixture.
 
-Design summary:
+Experiment design:
 
 - 14 fixtures across five families: frontend/3D, backend/data, ops/HPC, docs-heavy, and original smoke fixtures.
 - Frontend, backend, and ops fixtures were generated by separate agents with different task briefs; docs-heavy fixtures were added separately as a lower-code comparison group.
-- Each fixture defines a `scenario.json` search pattern so the broad search step is explicit and reproducible.
-- Baseline transcripts simulate naive broad context gathering: file listing, broad search output, and full text scans.
-- Harness transcripts simulate the intended workflow: RTK-style compact command output plus Graphify-style structure before opening raw files.
+- Each fixture defines a `scenario.json` search pattern, so the search task is explicit and reproducible.
+- The baseline transcript simulates broad manual exploration.
+- The harness transcript simulates a more disciplined workflow: summarize first, map structure second, open raw files later.
 
 Reproduce it:
 
