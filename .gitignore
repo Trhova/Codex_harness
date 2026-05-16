@@ -3,4 +3,5 @@ bin/
 state/backups/
 state/tmp/
 vendor/*/.graphify_*
+graphify-out/
 scripts/__pycache__/

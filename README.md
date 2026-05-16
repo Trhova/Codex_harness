@@ -1,166 +1,191 @@
-# codex_harness
+# Codex Harness
 
-`codex_harness` is a small helper project for people who use Codex in a chat-style workflow and want lower token usage, better codebase navigation, and an easy rollback path.
+> A practical guide and reversible setup harness for working well with Codex, RTK, and Graphify across local repositories.
 
-It combines two tools:
+Codex Harness is both:
 
-- `rtk` to reduce noisy command output before it reaches Codex
-- `graphify` to build a lightweight knowledge graph of a project so Codex can navigate structure instead of repeatedly searching raw files
+1. An installer that wires RTK and Graphify into a Codex-friendly workflow.
+2. A beginner-friendly guide for using Codex CLI, the Codex app/cloud workflow, project instructions, subagents, and token-efficient repository understanding.
 
-The project is designed to be reversible. It keeps track of what it changes, backs up important Codex files before editing them, and provides an uninstall path that restores the previous state.
+The goal is not to replace official Codex documentation. The goal is to give a working developer a repeatable setup, a rollback path, and concrete prompts they can copy into real projects.
 
-## What this is for
+## Contents
 
-If you work in VS Code and use Codex in a chat window, you usually do not want to think about shell tooling, hooks, or agent instructions every time you start a project.
+- [Who This Repo Is For](#who-this-repo-is-for)
+- [What This Harness Installs](#what-this-harness-installs)
+- [Start Here](#start-here)
+- [Repository Layout](#repository-layout)
+- [Codex Workflow Map](#codex-workflow-map)
+- [RTK + Graphify Mental Model](#rtk--graphify-mental-model)
+- [Useful Commands](#useful-commands)
+- [Official References](#official-references)
 
-This repo gives you a simple setup that:
+## Who This Repo Is For
 
-- makes Codex prefer lower-noise shell commands through `rtk`
-- adds graph-based project guidance through `graphify`
-- keeps installation and rollback in one place
+This repo is for people who want to:
 
-## What it changes
+| Need | Where to go |
+| --- | --- |
+| Install the harness safely | [Quickstart](docs/quickstart.md) |
+| Understand what RTK and Graphify add | [Concepts](docs/concepts.md) and [RTK + Graphify](docs/rtk-graphify.md) |
+| Use Codex CLI day to day | [Codex CLI Guide](docs/codex-cli.md) |
+| Use the Codex app/cloud workflow | [Codex App and Cloud](docs/codex-app-cloud.md) |
+| Configure Codex settings and instructions | [Settings](docs/settings.md) |
+| Spawn useful subagents | [Prompt Examples](docs/prompts.md) |
+| Roll back the harness | [Rollback Guide](docs/rollback.md) |
 
-When installed, the harness can manage:
+## What This Harness Installs
 
-- reusable tooling inside `codex_harness` itself
-- RTK's official Codex integration through `rtk init -g --codex`
-- project-level Graphify activation when you explicitly target a project
-- project `AGENTS.md`, project `.codex/hooks.json`, and `~/.codex/config.toml` when Graphify activation needs them
+| Component | What it does |
+| --- | --- |
+| RTK | Wraps noisy commands such as `git`, `grep`, `find`, and tests so Codex sees compact, readable output. |
+| Graphify | Builds repository maps under `graphify-out/` so Codex can start from a graph report instead of repeatedly scanning files. |
+| Codex instructions | Adds reusable guidance in `AGENTS.md` and RTK docs so Codex knows when to use RTK and Graphify. |
+| Rollback manifest | Records touched files and backups in `manifests/changes.json` and `state/backups/`. |
 
-The harness records these changes in `manifests/changes.json` and stores backups under `state/backups/`.
+This harness can touch files outside this repo, especially `~/.codex/AGENTS.md`, `~/.codex/RTK.md`, `~/.codex/config.toml`, and activated project files. Read [Rollback](docs/rollback.md) before installing on a machine you care about.
 
-Bootstrap is the canonical way to enable the RTK preference in a new workspace. Once the harness is installed, Codex should prefer `rtk` for noisy shell work unless a raw command is needed for correctness or the wrapper does not exist.
+## Start Here
 
-Bootstrap also adds the harness-installed `rtk` binary to your shell `PATH` through one managed `~/.bashrc` block, so `rtk` works directly from a new shell after sourcing your profile.
+```mermaid
+flowchart TD
+    A[Read this README] --> B[Read concepts]
+    B --> C[Bootstrap harness]
+    C --> D[Activate a target repo]
+    D --> E[Build Graphify report]
+    E --> F[Open target repo with Codex]
+    F --> G[Use RTK for noisy commands]
+    F --> H[Use subagents for parallel review]
+    G --> I[Commit project changes]
+    H --> I
+```
 
-## How to use this with Codex
+Recommended reading path:
 
-You do not need to be a programmer to use this.
+1. [Concepts](docs/concepts.md)
+2. [Quickstart](docs/quickstart.md)
+3. [Codex CLI](docs/codex-cli.md)
+4. [Settings](docs/settings.md)
+5. [RTK + Graphify](docs/rtk-graphify.md)
+6. [Prompt Examples](docs/prompts.md)
 
-If you already use VS Code and chat with Codex:
+## Repository Layout
 
-1. Open the folder you want to work in.
-2. Open a terminal in VS Code.
-3. Run the harness bootstrap script once:
+| Path | Purpose |
+| --- | --- |
+| `README.md` | Project overview and command cookbook. |
+| `scripts/harness.py` | Main bootstrap, activation, deactivation, and uninstall implementation. |
+| `scripts/install.sh` | Bootstraps the harness on this machine. |
+| `scripts/activate.sh` | Activates Graphify/Codex guidance for a target repo. |
+| `scripts/build_graph.sh` | Builds a first Graphify report for a target repo. |
+| `scripts/refresh_graph.sh` | Refreshes an existing Graphify report. |
+| `scripts/deactivate.sh` | Restores files for one activated target repo. |
+| `scripts/uninstall.sh` | Restores bootstrap files and removes harness-installed artifacts. |
+| `templates/` | Instruction templates used by the harness and by humans reviewing behavior. |
+| `docs/` | Beginner-friendly Codex, RTK, Graphify, subagent, and rollback guides. |
+| `manifests/changes.json` | Machine-local record of harness-managed changes. |
+| `vendor/` | RTK and Graphify source checkouts. |
+
+## Codex Workflow Map
+
+| Surface | Use it for |
+| --- | --- |
+| Codex CLI | Local terminal work, repo edits, command execution, tests, commits, and iterative debugging. |
+| Codex app/cloud | Reviewing tasks, delegating repository work, PR-oriented workflows, and work you want tracked outside a local terminal. |
+| `AGENTS.md` | Durable project instructions: commands, style, safety rules, and repo-specific workflow. |
+| Subagents | Parallel, bounded review or implementation tasks when the user explicitly asks for them. |
+| RTK | Lower-noise command output for Codex. |
+| Graphify | High-signal repo maps before architecture or broad codebase questions. |
+
+## RTK + Graphify Mental Model
+
+Codex spends context on whatever you show it. Huge command output and repeated file scans waste that context.
+
+RTK helps by making commands produce summarized, model-readable output. Graphify helps by giving Codex a repository map before it opens raw files.
+
+Use this default pattern in activated repositories:
+
+```bash
+rtk git status
+rtk git diff
+rtk grep "function_or_setting"
+rtk find . -type f
+graphify update .
+```
+
+Then ask Codex to start from:
+
+```text
+Read graphify-out/GRAPH_REPORT.md first, then inspect only the files needed for this change.
+```
+
+## Useful Commands
+
+### Install Harness
 
 ```bash
 /home/trhova/codex_harness/scripts/install.sh
 ```
 
-4. Activate Graphify for a specific project only when you want it:
+### Activate a Project
 
 ```bash
 /home/trhova/codex_harness/scripts/activate.sh /path/to/project
 ```
 
-5. Go back to your Codex chat and keep working normally.
-
-After bootstrap, Codex is set up to use the reusable tooling in this repo.
-
-RTK preference is established automatically by the harness bootstrap flow, so you do not need to hand-edit Codex instruction files.
-
-Important: the instruction layers steer Codex, but in practice you still start a chat with a prompt that tells Codex to use RTK and Graphify by default. Example prompt:
-
-```text
-For this workspace, use the installed RTK and Graphify setup by default whenever they would improve efficiency or reduce noise.
-
-Behavior rules:
-
-1. **Prefer RTK for noisy shell commands**
-
-   * For commands likely to produce non-trivial output, use `rtk` by default.
-   * Typical examples:
-
-     * `rtk git status`
-     * `rtk git diff`
-     * `rtk rg ...`
-     * `rtk find ...`
-     * `rtk pytest`
-     * `rtk nextflow ...`
-   * Only skip RTK when:
-
-     * the output is trivially small,
-     * raw unfiltered output is necessary for correctness,
-     * or RTK does not support the command.
-
-2. **Prefer Graphify for repo understanding**
-
-   * Before broad file-by-file exploration, check whether Graphify is active for this project and whether graph artifacts exist.
-   * If available, use Graphify outputs first, especially:
-
-     * `graphify-out/GRAPH_REPORT.md`
-     * `graphify-out/graph.json`
-   * Use those artifacts to understand architecture, relationships, and codebase structure before falling back to wide repo scans.
-
-3. **Use Graphify when it would save tokens**
-
-   * For questions like:
-
-     * “explain this repo”
-     * “where is X implemented”
-     * “how does this system fit together”
-     * “what files matter for Y”
-   * prefer graph-based understanding before repeated raw search.
-
-4. **Still use normal tools when appropriate**
-
-   * For tiny exact reads or commands where filtering would hurt accuracy, use the raw command.
-   * Do not force RTK or Graphify when they add no value.
-
-5. **Be explicit**
-
-   * When you choose RTK or Graphify, briefly note that you are doing so.
-   * If you are not using them for a task where they might have applied, briefly state why.
-
-In short:
-
-* use **RTK** for noisy command output
-* use **Graphify** for codebase understanding
-* fall back to raw commands and raw file inspection only when that is the better choice
-```
-
-After project activation, Codex is set up to:
-
-- prefer `rtk`-style lower-noise command usage
-- look for `graphify` project context before broad searching
-
-The harness does not activate Graphify for every repo by default. Activation is explicit per project.
-
-If you want to build or refresh the graph manually:
+### Build or Refresh a Graph
 
 ```bash
 /home/trhova/codex_harness/scripts/build_graph.sh /path/to/project
 /home/trhova/codex_harness/scripts/refresh_graph.sh /path/to/project
 ```
 
-## How to remove it
+### Use RTK in a Repo
 
-If you want to remove Graphify from one project:
+```bash
+rtk git status
+rtk git diff
+rtk grep "TODO|FIXME"
+rtk find . -type f
+rtk pytest
+```
+
+### Deactivate One Project
 
 ```bash
 /home/trhova/codex_harness/scripts/deactivate.sh /path/to/project
 ```
 
-If you want to remove the full harness setup:
+### Uninstall Everything the Harness Knows About
 
 ```bash
 /home/trhova/codex_harness/scripts/uninstall.sh
 ```
 
-`deactivate.sh` restores the target project's backed-up files. `uninstall.sh` removes all activated targets first, then removes the harness bootstrap state.
+### Example Subagent Prompt
 
-## Files in this repo
+```text
+Use 4 subagents to review this repo. Do not edit files yet.
 
-- `scripts/install.sh` bootstraps the reusable harness setup
-- `scripts/activate.sh` activates Graphify for one project
-- `scripts/deactivate.sh` removes Graphify from one project
-- `scripts/build_graph.sh` runs the initial Graphify build
-- `scripts/refresh_graph.sh` runs the Graphify update path
-- `scripts/uninstall.sh` rolls it back
-- `manifests/changes.json` records bootstrap state and target-specific activation state
-- `docs/ROLLBACK.md` explains the rollback model
+Agent 1: review documentation onboarding.
+Agent 2: review installation and rollback safety.
+Agent 3: review test and command ergonomics.
+Agent 4: review token usage and Graphify/RTK guidance.
 
-## Important note
+Each agent should return top findings, files involved, why it matters, proposed fix, and priority.
+After all agents finish, merge duplicates and propose a ranked plan.
+```
 
-This project does not try to hide what it changes. It is meant to be understandable, inspectable, and safe to reverse.
+## Official References
+
+Use these when documenting current Codex behavior:
+
+- [Codex CLI](https://developers.openai.com/codex/cli)
+- [Codex prompting](https://developers.openai.com/codex/prompting)
+- [AGENTS.md guide](https://developers.openai.com/codex/guides/agents-md)
+- [Codex config reference](https://developers.openai.com/codex/config-reference)
+- [Codex subagents](https://developers.openai.com/codex/subagents)
+- [Sandboxing](https://developers.openai.com/codex/concepts/sandboxing)
+- [Approvals and security](https://developers.openai.com/codex/agent-approvals-security)
+
+When official docs and this repo disagree, treat official docs as authoritative and update this repo.

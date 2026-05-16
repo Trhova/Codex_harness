@@ -1,5 +1,8 @@
 # Rollback
 
+> [!NOTE]
+> The expanded public rollback guide is now [rollback.md](rollback.md). This file is kept for compatibility with older links and still documents the original rollback model.
+
 The integration is reversible in two layers:
 
 1. `git -C /home/trhova/codex_harness log --stat`
