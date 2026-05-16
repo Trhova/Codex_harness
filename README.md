@@ -44,7 +44,9 @@ flowchart LR
 
 ## Part 1: Learn Codex
 
-Codex is a coding assistant that can act on a repository. You give it a task, and it can inspect files, edit code, run commands, explain choices, and help check whether the result works.
+Codex is a coding assistant that can act on a repository. A repository is basically a project folder with a history: it contains the files Codex should understand, such as code, documentation, configuration, small example data, and tests. In a research or data workflow, the repo usually holds the code that reads raw data, produces processed outputs, and records how the work was done. Keep large raw data, secrets, and bulky generated outputs outside Git unless your team has a deliberate system for tracking them.
+
+You give Codex a task, and it can inspect files, edit code, run commands, explain choices, and help check whether the result works.
 
 You do not need to learn every term before using it. Start with this loop:
 
@@ -66,12 +68,24 @@ You do not need to learn every term before using it. Start with this loop:
 | Subagents | Additional agents that can work on separate, bounded tasks in parallel. | Use subagents for independent review or implementation slices: one agent checks docs, another checks scripts, another checks experiments. Keep write scopes separate. | [Prompt Examples](docs/prompts.md) |
 | Approvals/sandboxing | Controls for what Codex can read, write, run, or access over the network. | Use stricter settings when exploring unfamiliar repos, protecting data, or letting Codex run commands you have not reviewed yet. | [Settings](docs/settings.md) |
 
-### A Good First Prompt
+### Getting Started With Codex
+
+You need access to Codex through your OpenAI account. In practice this usually means a paid ChatGPT plan such as Plus, Pro, Business, Enterprise, Edu, Health, or Gov; availability and rate limits change, so check OpenAI's current Codex plan information before onboarding a team.
+
+Three simple ways to start:
+
+| Start here | Good for | First step |
+| --- | --- | --- |
+| VS Code | Editing code while staying in a familiar editor. | Install the Codex/OpenAI extension or integration you use, open a project folder, and ask Codex to explain the repo before editing. |
+| Codex app/cloud | Delegating a task and reviewing the result without staying in a terminal. | Open the Codex app or web flow, connect/select the repo, describe the goal, and ask it to stop after a plan or diff summary. |
+| Terminal / CLI | Direct local work where Codex can run commands, tests, and scripts. | Open a shell, `cd /path/to/project`, run `codex`, and start with a small read-only task. |
+
+Example first request:
 
 ```text
-Read the README and explain how this repo is organized.
+Read the README and main docs for this repository.
+Explain what the repo is for and where I should make changes.
 Do not edit files yet.
-Tell me the safest first improvement to make.
 ```
 
 ## Part 2: Install the Harness
